@@ -97,8 +97,8 @@ uint8_t HELPER_STM32_getMaximumAmpere(void) {
 
 void HELPER_STM32_setMaximumAmpere(uint8_t newMaximumAmpere) {
 
-	maximumAmpere = newMaximumAmpere;
 	FLASH_STM32_setNewMaximumAmpere(maximumAmpere);
+	maximumAmpere = newMaximumAmpere;
 
 }
 

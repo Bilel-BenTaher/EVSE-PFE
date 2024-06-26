@@ -21,8 +21,8 @@ typedef enum { DISCONNECTED = 0, CONNECTED_NO_PWM = 1, CONNECTED = 2, CHARGING =
 
 
 // Variable Definitions
-#define		TS_CAL1_ADDRPTR						((uint16_t*) ((uint32_t) 0x1ffff7b8))
-#define		HELPER_STM32_MOVINGAVERAGE			32
+#define		TS_CAL1_ADDRPTR						((uint16_t*) ((uint32_t) 0x0BFA 0710))
+#define		HELPER_STM32_MOVINGAVERAGE			 32
 
 
 // Variable Declarations
