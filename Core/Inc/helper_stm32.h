@@ -21,7 +21,7 @@ typedef enum { DISCONNECTED = 0, CONNECTED_NO_PWM = 1, CONNECTED = 2, CHARGING =
 
 
 // Variable Definitions
-#define		TS_CAL1_ADDRPTR						((uint16_t*) ((uint32_t) 0x0BFA 0710))
+#define		TS_CAL1_ADDRPTR						((uint16_t*) ((uint32_t) 0x0BFA0710))
 #define		HELPER_STM32_MOVINGAVERAGE			 32
 
 
@@ -36,7 +36,6 @@ volatile	uint8_t								needsUpdate;
 
 
 // Function Declarations
-void HELPER_STM32_initSystemClocks(void);
 void HELPER_STM32_initSystemVariables(void);
 CONTROLPILOT_STM32_EVSE_MODE HELPER_STM32_getCurrentStatus(void);
 void HELPER_STM32_setCurrentStatus(CONTROLPILOT_STM32_EVSE_MODE newCurrentStatus);

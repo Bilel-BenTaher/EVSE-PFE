@@ -10,37 +10,6 @@
 //#include "oled_stm32_ssd1306.h"
 
 
-void HELPER_STM32_initSystemClocks(void) {
-
-	// Reset config and disable external clock sources
-	RCC_DeInit();
-	RCC_HSEConfig(RCC_HSE_OFF);
-	RCC_LSEConfig(RCC_LSE_OFF);
-
-	// Enable internal clock sources and wait until ready
-	RCC_HSICmd(ENABLE);
-	RCC_LSICmd(ENABLE);
-	RCC_HSI14Cmd(ENABLE);
-	while (!RCC_GetFlagStatus(RCC_FLAG_HSIRDY)) { /* wait until ready */ }
-	while (!RCC_GetFlagStatus(RCC_FLAG_LSIRDY)) { /* wait until ready */ }
-	while (!RCC_GetFlagStatus(RCC_FLAG_HSI14RDY)) { /* wait until ready */ }
-
-	// Configure PLL to use HSI and wait until ready
-	RCC_PLLCmd(DISABLE);
-	RCC_PLLConfig(RCC_PLLSource_HSI_Div2, RCC_PLLMul_12);
-	RCC_PLLCmd(ENABLE);
-	while (!RCC_GetFlagStatus(RCC_FLAG_PLLRDY)) { /* wait until ready */ }
-
-	// Configure system clocks to use PLL clock source and configure HSI14 for ADC
-	RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
-	RCC_HCLKConfig(RCC_SYSCLK_Div1);
-	RCC_PCLKConfig(RCC_HCLK_Div1);
-	RCC_ADCCLKConfig(RCC_ADCCLK_HSI14);
-	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK); //useful?
-
-}
-
-
 // This function sets the main EVSE related variables and checks if the maximum current
 // value has ever been stored in the FLASH ROM before. If not, it is set to 32A.
 void HELPER_STM32_initSystemVariables(void) {
@@ -53,7 +22,7 @@ void HELPER_STM32_initSystemVariables(void) {
 	currentAmpere = maximumAmpere;
 	currentStatus = DISCONNECTED;
 	lastStatus = DISCONNECTED;
-	VsenseCurrent = 1430;
+	VsenseCurrent = 752;
 	for (int i = 0; i < HELPER_STM32_MOVINGAVERAGE; i++) { previousTempArray[i] = 415; }
 	needsUpdate = 0;
 
@@ -97,20 +66,20 @@ uint8_t HELPER_STM32_getMaximumAmpere(void) {
 
 void HELPER_STM32_setMaximumAmpere(uint8_t newMaximumAmpere) {
 
-	FLASH_STM32_setNewMaximumAmpere(maximumAmpere);
 	maximumAmpere = newMaximumAmpere;
+	FLASH_STM32_setNewMaximumAmpere(maximumAmpere);
 
 }
 
 
 // This function is here to reduce the workload from the interrupt-based ADC collecting function.
-// Reference: VsenseTScal is for 30°C at 3300mV VDDA and has a slope of 4.3mV / °C
+// Reference: VsenseTScal is for 30°C at 3300mV VDDA and has a slope of 2.5mV / °C
 // In addition, the temperature is being normalized with a moving average as per definition
 int8_t HELPER_STM32_getCurrentTemp(void) {
 
 	double TSCALraw = (double)(*TS_CAL1_ADDRPTR);
-	double VsenseTScal = 3300.0 * TSCALraw / 4095.0;
-	double Tdelta = (VsenseTScal - VsenseCurrent) / 4.3;
+	double VsenseTScal = 3000.0 * TSCALraw / 4095.0;
+	double Tdelta = (VsenseTScal - VsenseCurrent) / 2.5;
     int16_t Tresult = (int16_t)(300.0 + (Tdelta * 10.0));
     for (int i = 0; i < HELPER_STM32_MOVINGAVERAGE - 1; i++) { previousTempArray[i] = previousTempArray[i+1]; }
     previousTempArray[HELPER_STM32_MOVINGAVERAGE - 1] = Tresult;
@@ -139,37 +108,27 @@ void HELPER_STM32_setNeedsUpdate(uint8_t newNeedsUpdate) {
 }
 
 
-void HELPER_STM32_updateLoop(void) {
+//void HELPER_STM32_updateLoop(void) {
 
-	while (1) {
-		CONTROLPILOT_STM32_EVSE_MODE myStatus = currentStatus;
-		if ((lastStatus != myStatus) | (needsUpdate == 1)) {
-			OLED_STM32_updateMainView();
-			lastStatus = myStatus;
-			needsUpdate = 0;
-		}
-	}
+	//while (1) {
+		//CONTROLPILOT_STM32_EVSE_MODE myStatus = currentStatus;
+		//if ((lastStatus != myStatus) | (needsUpdate == 1)) {
+		//	OLED_STM32_updateMainView();
+		//	lastStatus = myStatus;
+		//	needsUpdate = 0;
+		//}
+	//}
 
-}
+//}
 
 
 // A delay function based purely on the performance of the microprocessor.
 void delayMilliseconds (int milliseconds) {
 
-	uint64_t counter = 2175 * milliseconds; //for 48MHz setting
-	while (counter > 0) {
-		counter--;
+	HAL_Delay(ms);
 	}
 
-}
 
 
-/*
-void delayMicroseconds (int microseconds) {
-	uint64_t counter = microseconds; //for 48MHz setting
-	while (counter > 0) {
-		counter--;
-	}
-}
-*/
+
 
