@@ -40,6 +40,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc4;
 
 /* USER CODE BEGIN PV */
 
@@ -47,7 +48,9 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
 static void MX_MEMORYMAP_Init(void);
+static void MX_ADC4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -84,7 +87,9 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+  MX_GPIO_Init();
   MX_MEMORYMAP_Init();
+  MX_ADC4_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -154,6 +159,83 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief ADC4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC4_Init(void)
+{
+
+  /* USER CODE BEGIN ADC4_Init 0 */
+
+  /* USER CODE END ADC4_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC4_Init 1 */
+
+  /* USER CODE END ADC4_Init 1 */
+
+  /** Common config
+  */
+  hadc4.Instance = ADC4;
+  hadc4.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+  hadc4.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc4.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc4.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
+  hadc4.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc4.Init.LowPowerAutoPowerOff = ADC_LOW_POWER_NONE;
+  hadc4.Init.LowPowerAutoWait = DISABLE;
+  hadc4.Init.ContinuousConvMode = ENABLE;
+  hadc4.Init.NbrOfConversion = 1;
+  hadc4.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc4.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc4.Init.DMAContinuousRequests = DISABLE;
+  hadc4.Init.TriggerFrequencyMode = ADC_TRIGGER_FREQ_HIGH;
+  hadc4.Init.VrefProtection = ADC_VREF_PPROT_NONE;
+  hadc4.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc4.Init.SamplingTimeCommon1 = ADC4_SAMPLETIME_7CYCLES_5;
+  hadc4.Init.SamplingTimeCommon2 = ADC4_SAMPLETIME_1CYCLE_5;
+  hadc4.Init.OversamplingMode = DISABLE;
+  if (HAL_ADC_Init(&hadc4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_11;
+  sConfig.Rank = ADC4_RANK_CHANNEL_NUMBER;
+  sConfig.SamplingTime = ADC4_SAMPLINGTIME_COMMON_1;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC4_CHANNEL_TEMPSENSOR;
+  if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
+  if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC4_Init 2 */
+
+  /* USER CODE END ADC4_Init 2 */
+
+}
+
+/**
   * @brief MEMORYMAP Initialization Function
   * @param None
   * @retval None
@@ -172,6 +254,42 @@ static void MX_MEMORYMAP_Init(void)
 
   /* USER CODE END MEMORYMAP_Init 2 */
 
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOE, CONTROLPILOT_STM32_GPIO_OUT_PIN_Pin|CONTROLPILOT_STM32_GPIO_CTCTR_PIN_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : CONTROLPILOT_STM32_GPIO_OUT_PIN_Pin */
+  GPIO_InitStruct.Pin = CONTROLPILOT_STM32_GPIO_OUT_PIN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(CONTROLPILOT_STM32_GPIO_OUT_PIN_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : CONTROLPILOT_STM32_GPIO_CTCTR_PIN_Pin */
+  GPIO_InitStruct.Pin = CONTROLPILOT_STM32_GPIO_CTCTR_PIN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(CONTROLPILOT_STM32_GPIO_CTCTR_PIN_GPIO_Port, &GPIO_InitStruct);
+
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */

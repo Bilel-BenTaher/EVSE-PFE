@@ -55,7 +55,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-
+extern ADC_HandleTypeDef hadc4;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -197,6 +197,20 @@ void SysTick_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32u5xx.s).                    */
 /******************************************************************************/
+
+/**
+  * @brief This function handles ADC4 (12bits) global interrupt.
+  */
+void ADC4_IRQHandler(void)
+{
+  /* USER CODE BEGIN ADC4_IRQn 0 */
+
+  /* USER CODE END ADC4_IRQn 0 */
+  HAL_ADC_IRQHandler(&hadc4);
+  /* USER CODE BEGIN ADC4_IRQn 1 */
+
+  /* USER CODE END ADC4_IRQn 1 */
+}
 
 /* USER CODE BEGIN 1 */
 

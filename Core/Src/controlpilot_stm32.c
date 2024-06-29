@@ -5,8 +5,8 @@
  *      Author: hp
  */
 
-#include "stm32f0xx.h"
-#include "stm32f0xx_adc.h"
+#include "stm32u5xx.h"
+#include "stm32u5xx_adc.h"
 #include "controlpilot_stm32.h"
 #include "helper_stm32.h"
 //#include "usart_stm32_console.h"
@@ -20,45 +20,11 @@ uint16_t valueThree = 0;
 
 void CONTROLPILOT_STM32_configure(void) {
 
-	// Configure GPIO
-    RCC_AHBPeriphClockCmd(CONTROLPILOT_STM32_GPIO_IN_PERIPH, ENABLE);
-    RCC_AHBPeriphClockCmd(CONTROLPILOT_STM32_GPIO_OUT_PERIPH, ENABLE); //RCC_AHBPeriphClockCmd(CONTROLPILOT_STM32_GPIO_CTCTR_PERIPH, ENABLE);
-	GPIO_InitTypeDef GPIO_InitStructure;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT; //GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-    GPIO_InitStructure.GPIO_Pin = CONTROLPILOT_STM32_GPIO_CTCTR_PIN;
-    GPIO_Init(CONTROLPILOT_STM32_GPIO_CTCTR_PORT, &GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_InitStructure.GPIO_Pin = CONTROLPILOT_STM32_GPIO_OUT_PIN;
-    GPIO_Init(CONTROLPILOT_STM32_GPIO_OUT_PORT, &GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN; //GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-    GPIO_InitStructure.GPIO_Pin = CONTROLPILOT_STM32_GPIO_IN_PIN;
-    GPIO_Init(CONTROLPILOT_STM32_GPIO_IN_PORT, &GPIO_InitStructure);
-
-    // Configure ADC
-    RCC_APB2PeriphClockCmd(CONTROLPILOT_STM32_ADC_PERIPH, ENABLE);
-    ADC_InitTypeDef ADC_InitStructure;
-    ADC_StructInit(&ADC_InitStructure);
-    ADC_Init(CONTROLPILOT_STM32_ADC, &ADC_InitStructure);
-
-    // Activate Temperature Sensore and Internal Reference Voltage Sensor
-    ADC_TempSensorCmd(ENABLE);
-    ADC_VrefintCmd(ENABLE);
-
-    // Activate Channels
-    ADC_ChannelConfig(CONTROLPILOT_STM32_ADC, CONTROLPILOT_STM32_ADC_CHANNEL_EVSE, CONTROLPILOT_STM32_ADC_SAMPLETIME);
-    ADC_ChannelConfig(CONTROLPILOT_STM32_ADC, CONTROLPILOT_STM32_ADC_CHANNEL_TEMP, CONTROLPILOT_STM32_ADC_SAMPLETIME);
-    ADC_ChannelConfig(CONTROLPILOT_STM32_ADC, CONTROLPILOT_STM32_ADC_CHANNEL_VREF, CONTROLPILOT_STM32_ADC_SAMPLETIME);
-
     // Start calibration, then wait until completed, then enable ADC
-    uint16_t calibrationFactor = (uint16_t)ADC_GetCalibrationFactor(CONTROLPILOT_STM32_ADC);
-    //USART_STM32_sendIntegerToUSART("ADC Calibration Factor = ", calibrationFactor);
-    ADC_Cmd(CONTROLPILOT_STM32_ADC, ENABLE);
+    HAL_ADCEx_Calibration_Start(&hadc4, ADC_SINGLE_ENDED);
+    uint16_t calibrationFactor = (uint16_t)HAL_ADCEx_Calibration_GetValue(&hadc4,ADC_SINGLE_ENDED);
 
-    // Wait until ADC is ready
-    while (ADC_GetFlagStatus(CONTROLPILOT_STM32_ADC, ADC_FLAG_ADRDY) != SET) {}
-    while (ADC_GetFlagStatus(CONTROLPILOT_STM32_ADC, ADC_FLAG_ADEN) != SET) {}
+
 
     // Configure Timers
     RCC_GetClocksFreq(&RCC_Clocks);

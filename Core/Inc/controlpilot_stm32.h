@@ -20,16 +20,6 @@ typedef enum { DISCONNECTED = 0, CONNECTED_NO_PWM = 1, CONNECTED = 2, CHARGING =
 typedef enum {          LOW = 0,             HIGH = 1 }                                                              CONTROLPILOT_STM32_EVSE_SIDE;
 typedef enum {     INACTIVE = 0,           ACTIVE = 1 }                                                              CONTROLPILOT_STM32_STATE;
 
-// GPIO Definitions
-#define    CONTROLPILOT_STM32_GPIO_IN_PERIPH     RCC_AHBPeriph_GPIOA
-#define    CONTROLPILOT_STM32_GPIO_OUT_PERIPH    RCC_AHBPeriph_GPIOF
-#define    CONTROLPILOT_STM32_GPIO_CTCTR_PERIPH  RCC_AHBPeriph_GPIOF
-#define    CONTROLPILOT_STM32_GPIO_IN_PORT       GPIOA
-#define    CONTROLPILOT_STM32_GPIO_OUT_PORT      GPIOF
-#define    CONTROLPILOT_STM32_GPIO_CTCTR_PORT    GPIOF
-#define    CONTROLPILOT_STM32_GPIO_IN_PIN        GPIO_Pin_6
-#define    CONTROLPILOT_STM32_GPIO_OUT_PIN       GPIO_Pin_0
-#define    CONTROLPILOT_STM32_GPIO_CTCTR_PIN     GPIO_Pin_1
 
 // TIM Definitions
 #define    CONTROLPILOT_STM32_TIMER_HIGH         TIM16

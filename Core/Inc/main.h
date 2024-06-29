@@ -57,6 +57,12 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define CONTROLPILOT_STM32_ADC_CHANNEL_EVSE_Pin GPIO_PIN_6
+#define CONTROLPILOT_STM32_ADC_CHANNEL_EVSE_GPIO_Port GPIOA
+#define CONTROLPILOT_STM32_GPIO_OUT_PIN_Pin GPIO_PIN_0
+#define CONTROLPILOT_STM32_GPIO_OUT_PIN_GPIO_Port GPIOE
+#define CONTROLPILOT_STM32_GPIO_CTCTR_PIN_Pin GPIO_PIN_1
+#define CONTROLPILOT_STM32_GPIO_CTCTR_PIN_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 
