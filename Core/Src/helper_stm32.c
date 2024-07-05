@@ -6,7 +6,6 @@
  */
 #include "stm32u5xx.h"
 #include "helper_stm32.h"
-#include "flash_stm32.h"
 //#include "oled_stm32_ssd1306.h"
 
 
@@ -14,14 +13,6 @@
 // value has ever been stored in the FLASH ROM before. If not, it is set to 32A.
 void HELPER_STM32_initSystemVariables(void) {
 
-	FLASH_STM32_getMaximumAmpere();
-	if ((maximumAmpere == 0) | (maximumAmpere > 32)) {
-		FLASH_STM32_setNewMaximumAmpere(32);
-		maximumAmpere = 32;
-	}
-	currentAmpere = maximumAmpere;
-	currentStatus = DISCONNECTED;
-	lastStatus = DISCONNECTED;
 	VsenseCurrent = 752;
 	for (int i = 0; i < HELPER_STM32_MOVINGAVERAGE; i++) { previousTempArray[i] = 415; }
 	needsUpdate = 0;
@@ -73,7 +64,7 @@ void HELPER_STM32_setMaximumAmpere(uint8_t newMaximumAmpere) {
 
 
 // This function is here to reduce the workload from the interrupt-based ADC collecting function.
-// Reference: VsenseTScal is for 30°C at 3300mV VDDA and has a slope of 2.5mV / °C
+// Reference: VsenseTScal is for 30°C at 3000mV VDDA and has a slope of 2.5mV / °C
 // In addition, the temperature is being normalized with a moving average as per definition
 int8_t HELPER_STM32_getCurrentTemp(void) {
 
@@ -108,6 +99,12 @@ void HELPER_STM32_setNeedsUpdate(uint8_t newNeedsUpdate) {
 }
 
 
+// A delay function based purely on the performance of the microprocessor.
+void delayMilliseconds (int milliseconds) {
+
+	HAL_Delay(ms);
+	}
+
 //void HELPER_STM32_updateLoop(void) {
 
 	//while (1) {
@@ -122,11 +119,7 @@ void HELPER_STM32_setNeedsUpdate(uint8_t newNeedsUpdate) {
 //}
 
 
-// A delay function based purely on the performance of the microprocessor.
-void delayMilliseconds (int milliseconds) {
 
-	HAL_Delay(ms);
-	}
 
 
 

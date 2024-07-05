@@ -107,15 +107,16 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
     /**ADC4 GPIO Configuration
+    PA5     ------> ADC4_IN10
     PA6     ------> ADC4_IN11
     */
-    GPIO_InitStruct.Pin = CONTROLPILOT_STM32_ADC_CHANNEL_EVSE_Pin;
+    GPIO_InitStruct.Pin = CONTROLPILOT_STM32_ADC_CHANNE_CURRENT_Pin|CONTROLPILOT_STM32_ADC_CHANNEL_EVSE_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(CONTROLPILOT_STM32_ADC_CHANNEL_EVSE_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* ADC4 interrupt Init */
-    HAL_NVIC_SetPriority(ADC4_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(ADC4_IRQn, 3, 0);
     HAL_NVIC_EnableIRQ(ADC4_IRQn);
   /* USER CODE BEGIN ADC4_MspInit 1 */
 
@@ -141,15 +142,94 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
     __HAL_RCC_ADC4_CLK_DISABLE();
 
     /**ADC4 GPIO Configuration
+    PA5     ------> ADC4_IN10
     PA6     ------> ADC4_IN11
     */
-    HAL_GPIO_DeInit(CONTROLPILOT_STM32_ADC_CHANNEL_EVSE_GPIO_Port, CONTROLPILOT_STM32_ADC_CHANNEL_EVSE_Pin);
+    HAL_GPIO_DeInit(GPIOA, CONTROLPILOT_STM32_ADC_CHANNE_CURRENT_Pin|CONTROLPILOT_STM32_ADC_CHANNEL_EVSE_Pin);
 
     /* ADC4 interrupt DeInit */
     HAL_NVIC_DisableIRQ(ADC4_IRQn);
   /* USER CODE BEGIN ADC4_MspDeInit 1 */
 
   /* USER CODE END ADC4_MspDeInit 1 */
+  }
+
+}
+
+/**
+* @brief TIM_Base MSP Initialization
+* This function configures the hardware resources used in this example
+* @param htim_base: TIM_Base handle pointer
+* @retval None
+*/
+void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
+{
+  if(htim_base->Instance==TIM16)
+  {
+  /* USER CODE BEGIN TIM16_MspInit 0 */
+
+  /* USER CODE END TIM16_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_TIM16_CLK_ENABLE();
+    /* TIM16 interrupt Init */
+    HAL_NVIC_SetPriority(TIM16_IRQn, 2, 0);
+    HAL_NVIC_EnableIRQ(TIM16_IRQn);
+  /* USER CODE BEGIN TIM16_MspInit 1 */
+
+  /* USER CODE END TIM16_MspInit 1 */
+  }
+  else if(htim_base->Instance==TIM17)
+  {
+  /* USER CODE BEGIN TIM17_MspInit 0 */
+
+  /* USER CODE END TIM17_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_TIM17_CLK_ENABLE();
+    /* TIM17 interrupt Init */
+    HAL_NVIC_SetPriority(TIM17_IRQn, 2, 0);
+    HAL_NVIC_EnableIRQ(TIM17_IRQn);
+  /* USER CODE BEGIN TIM17_MspInit 1 */
+
+  /* USER CODE END TIM17_MspInit 1 */
+  }
+
+}
+
+/**
+* @brief TIM_Base MSP De-Initialization
+* This function freeze the hardware resources used in this example
+* @param htim_base: TIM_Base handle pointer
+* @retval None
+*/
+void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
+{
+  if(htim_base->Instance==TIM16)
+  {
+  /* USER CODE BEGIN TIM16_MspDeInit 0 */
+
+  /* USER CODE END TIM16_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM16_CLK_DISABLE();
+
+    /* TIM16 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(TIM16_IRQn);
+  /* USER CODE BEGIN TIM16_MspDeInit 1 */
+
+  /* USER CODE END TIM16_MspDeInit 1 */
+  }
+  else if(htim_base->Instance==TIM17)
+  {
+  /* USER CODE BEGIN TIM17_MspDeInit 0 */
+
+  /* USER CODE END TIM17_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM17_CLK_DISABLE();
+
+    /* TIM17 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(TIM17_IRQn);
+  /* USER CODE BEGIN TIM17_MspDeInit 1 */
+
+  /* USER CODE END TIM17_MspDeInit 1 */
   }
 
 }

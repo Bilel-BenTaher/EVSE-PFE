@@ -42,6 +42,9 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc4;
 
+TIM_HandleTypeDef htim16;
+TIM_HandleTypeDef htim17;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -51,6 +54,8 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_MEMORYMAP_Init(void);
 static void MX_ADC4_Init(void);
+static void MX_TIM16_Init(void);
+static void MX_TIM17_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -90,8 +95,12 @@ int main(void)
   MX_GPIO_Init();
   MX_MEMORYMAP_Init();
   MX_ADC4_Init();
+  MX_TIM16_Init();
+  MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
-
+  HELPER_STM32_initSystemVariables();
+  CONTROLPILOT_STM32_configure();
+  CONTROLPILOT_STM32_timerHighStart();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -182,12 +191,12 @@ static void MX_ADC4_Init(void)
   hadc4.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc4.Init.Resolution = ADC_RESOLUTION_12B;
   hadc4.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc4.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
+  hadc4.Init.ScanConvMode = ADC4_SCAN_ENABLE;
   hadc4.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc4.Init.LowPowerAutoPowerOff = ADC_LOW_POWER_NONE;
   hadc4.Init.LowPowerAutoWait = DISABLE;
   hadc4.Init.ContinuousConvMode = ENABLE;
-  hadc4.Init.NbrOfConversion = 1;
+  hadc4.Init.NbrOfConversion = 4;
   hadc4.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc4.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc4.Init.DMAContinuousRequests = DISABLE;
@@ -205,7 +214,7 @@ static void MX_ADC4_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_11;
-  sConfig.Rank = ADC4_RANK_CHANNEL_NUMBER;
+  sConfig.Rank = ADC4_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC4_SAMPLINGTIME_COMMON_1;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -216,7 +225,17 @@ static void MX_ADC4_Init(void)
 
   /** Configure Regular Channel
   */
+  sConfig.Channel = ADC_CHANNEL_10;
+  sConfig.Rank = ADC4_REGULAR_RANK_2;
+  if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
   sConfig.Channel = ADC4_CHANNEL_TEMPSENSOR;
+  sConfig.Rank = ADC4_REGULAR_RANK_3;
   if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -225,6 +244,7 @@ static void MX_ADC4_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_VREFINT;
+  sConfig.Rank = ADC4_REGULAR_RANK_4;
   if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -253,6 +273,70 @@ static void MX_MEMORYMAP_Init(void)
   /* USER CODE BEGIN MEMORYMAP_Init 2 */
 
   /* USER CODE END MEMORYMAP_Init 2 */
+
+}
+
+/**
+  * @brief TIM16 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM16_Init(void)
+{
+
+  /* USER CODE BEGIN TIM16_Init 0 */
+
+  /* USER CODE END TIM16_Init 0 */
+
+  /* USER CODE BEGIN TIM16_Init 1 */
+
+  /* USER CODE END TIM16_Init 1 */
+  htim16.Instance = TIM16;
+  htim16.Init.Prescaler = 47;
+  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim16.Init.Period = 1021;
+  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim16.Init.RepetitionCounter = 0;
+  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM16_Init 2 */
+
+  /* USER CODE END TIM16_Init 2 */
+
+}
+
+/**
+  * @brief TIM17 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM17_Init(void)
+{
+
+  /* USER CODE BEGIN TIM17_Init 0 */
+
+  /* USER CODE END TIM17_Init 0 */
+
+  /* USER CODE BEGIN TIM17_Init 1 */
+
+  /* USER CODE END TIM17_Init 1 */
+  htim17.Instance = TIM17;
+  htim17.Init.Prescaler = 47;
+  htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim17.Init.Period = 539;
+  htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim17.Init.RepetitionCounter = 0;
+  htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM17_Init 2 */
+
+  /* USER CODE END TIM17_Init 2 */
 
 }
 
