@@ -9,7 +9,7 @@
 #include "controlpilot_stm32.h"
 #include "helper_stm32.h"
 //#include "usart_stm32_console.h"
-//#include "oled_stm32_ssd1306.h"
+#include "oled_stm32_ssd1306.h"
 #include <stdlib.h>
 
 
@@ -83,13 +83,11 @@ void CONTROLPILOT_STM32_startADCConversion(CONTROLPILOT_STM32_EVSE_SIDE activeSi
 	    double cpCurrentFloat = Vddfloat * ADCCurrentFloat / 4095.0;
 	    HELPER_STM32_setCurrentAmpere(cpCurrentFloat);
 
-
-
 	    // Temp calculation; reduced to Vsense to lower workload on this function
 	    double Temprefint = (double)ADC_raw[2];
 	    double VsenseCurrent = Vddfloat * Temprefint / 4095.0;
 	    HELPER_STM32_setCurrentTemp(VsenseCurrent);
-	    newMaximumAmpere=HELPER_STM32_getCurrentTemp();
+	    newMaximumTemp=HELPER_STM32_getCurrentTemp();
 	}
 
 
@@ -172,7 +170,7 @@ void TIM16_IRQHandler(void) {
 
     if (TIM_GetITStatus(CONTROLPILOT_STM32_TIMER_HIGH, TIM_IT_Update) != RESET) {
         TIM_ClearITPendingBit(CONTROLPILOT_STM32_TIMER_HIGH, TIM_IT_Update);
-        if(newMaximumAmpere<60){
+        if(newMaximumTemp<80){
         CONTROLPILOT_STM32_setHigh();
         CONTROLPILOT_STM32_startADCConversion(HIGH);
         CONTROLPILOT_STM32_setChargingCurrent();
@@ -185,6 +183,7 @@ void TIM16_IRQHandler(void) {
         switch (CONTROLPILOT_STM32_CP_VOLTAGE_HIGH) {
             case 2952 ... 3200:
                 CONTROLPILOT_STM32_SWITCH_VEHICLE_STATUS(DISCONNECTED);
+                needsUpdate == 1;
                 break;
             case 2582 ... 2830:
                 if (CONTROLPILOT_STM32_EVSE_ACTIVE_PWM_STATE == INACTIVE) {
@@ -195,6 +194,7 @@ void TIM16_IRQHandler(void) {
                 break;
             case 2212 ... 2459:
                 CONTROLPILOT_STM32_SWITCH_VEHICLE_STATUS(CHARGING);
+                needsUpdate == 1;
                 break;
             case 1841 ... 2089:
                 CONTROLPILOT_STM32_SWITCH_VEHICLE_STATUS(CHARGING_COOLED);
@@ -205,6 +205,12 @@ void TIM16_IRQHandler(void) {
         }
     }
         else {CONTROLPILOT_STM32_SWITCH_VEHICLE_STATUS(FAULT);}
+        myStatus = currentStatus;
+        if ((lastStatus != myStatus)| (needsUpdate == 1) )
+        {
+        OLED_STM32_updateMainView();
+        lastStatus = myStatus;
+        }
     }
 }
 
@@ -223,43 +229,12 @@ void TIM17_IRQHandler(void) {
         }
         // Set EVSE_STATE to FAULT if negative PWM voltage is reduced due to shorted or faulty safety diode.
         if (CONTROLPILOT_STM32_CP_VOLTAGE_LOW > 150 ||newMaximumAmpere>60 ) { CONTROLPILOT_STM32_SWITCH_VEHICLE_STATUS(FAULT); }
+        myStatus = currentStatus;
+        if ((lastStatus != myStatus)| (needsUpdate == 1))
+          {
+            OLED_STM32_updateMainView();
+            lastStatus = myStatus;
+          }
 	}
 
 }
-/*void TIM14_IRQHandler(void) {
-
-    if (TIM_GetITStatus(TIM14, TIM_IT_Update) != RESET) {
-        TIM_ClearITPendingBit(TIM14, TIM_IT_Update);
-        OLED_STM32_clearDisplay();
-        OLED_STM32_drawLine(0,9,127,9);
-        char maxAmpStr[4] = "   ";
-        if (HELPER_STM32_getMaximumAmpere() < 10) {
-            maxAmpStr[0] = HELPER_STM32_getMaximumAmpere() + 48;
-            maxAmpStr[1] = 0x41; //A
-        } else {
-            maxAmpStr[0] = HELPER_STM32_getMaximumAmpere() / 10 + 48;
-            maxAmpStr[1] = HELPER_STM32_getMaximumAmpere() % 10 + 48;
-            maxAmpStr[2] = 0x41; //A
-        }
-        OLED_STM32_drawMonospaceString(0,0,maxAmpStr);
-        uint8_t offsetValue = 0;
-        switch (HELPER_STM32_getCurrentStatus()) {
-            case DISCONNECTED: offsetValue = 37; OLED_STM32_drawMonospaceString(48+offsetValue, 0, "Getrennt"); break;
-            case CONNECTED_NO_PWM: offsetValue = 29; OLED_STM32_drawMonospaceString(48+offsetValue,0,"Verbunden"); break;
-            case CONNECTED: offsetValue = 29; OLED_STM32_drawMonospaceString(48+offsetValue,0,"Verbunden"); break;
-            case CHARGING: offsetValue = 16; OLED_STM32_drawMonospaceString(48+offsetValue,0,"Ladevorgang"); break;
-            case CHARGING_COOLED: offsetValue = 44; OLED_STM32_drawMonospaceString(48+offsetValue,0,"K\xfchlung"); break;
-            case FAULT: offsetValue = 11; OLED_STM32_drawMonospaceString(48+offsetValue,0,"Fehlermeldung"); break;
-        }
-        char buffer[8];
-        itoa(CONTROLPILOT_STM32_CP_VOLTAGE_HIGH,buffer,10);
-        OLED_STM32_drawMonospaceString(0,11,"CP_VLT_HIGH = ");
-        OLED_STM32_drawMonospaceString(78,11,buffer);
-        itoa(CONTROLPILOT_STM32_CP_VOLTAGE_LOW,buffer,10);
-        OLED_STM32_drawMonospaceString(0,19,"CP_VLT_LOW  = ");
-        OLED_STM32_drawMonospaceString(78,19,buffer);
-        OLED_STM32_updateDisplay();
-    }
-
-}
-*/

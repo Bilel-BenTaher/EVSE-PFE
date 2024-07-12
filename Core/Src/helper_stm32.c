@@ -6,13 +6,12 @@
  */
 #include "stm32u5xx.h"
 #include "helper_stm32.h"
-//#include "oled_stm32_ssd1306.h"
-
 
 // This function sets the main EVSE related variables and checks if the maximum current
 // value has ever been stored in the FLASH ROM before. If not, it is set to 32A.
 void HELPER_STM32_initSystemVariables(void) {
-
+	HELPER_STM32_setMaximumAmpere(32);
+	lastStatus = DISCONNECTED;
 	VsenseCurrent = 752;
 	for (int i = 0; i < HELPER_STM32_MOVINGAVERAGE; i++) { previousTempArray[i] = 415; }
 	needsUpdate = 0;
@@ -58,8 +57,6 @@ uint8_t HELPER_STM32_getMaximumAmpere(void) {
 void HELPER_STM32_setMaximumAmpere(uint8_t newMaximumAmpere) {
 
 	maximumAmpere = newMaximumAmpere;
-	FLASH_STM32_setNewMaximumAmpere(maximumAmpere);
-
 }
 
 
@@ -105,18 +102,6 @@ void delayMilliseconds (int milliseconds) {
 	HAL_Delay(ms);
 	}
 
-//void HELPER_STM32_updateLoop(void) {
-
-	//while (1) {
-		//CONTROLPILOT_STM32_EVSE_MODE myStatus = currentStatus;
-		//if ((lastStatus != myStatus) | (needsUpdate == 1)) {
-		//	OLED_STM32_updateMainView();
-		//	lastStatus = myStatus;
-		//	needsUpdate = 0;
-		//}
-	//}
-
-//}
 
 
 

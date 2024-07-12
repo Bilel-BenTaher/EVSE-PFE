@@ -29,10 +29,11 @@ typedef enum {     INACTIVE = 0,           ACTIVE = 1 }                         
 volatile uint16_t                                ADC_raw[4];
 volatile uint8_t                                 adcDelayCounterHigh;
 volatile uint8_t                                 adcDelayCounterLow;
-volatile uint8_t                                 newMaximumAmpere;
+volatile uint8_t                                 newMaximumTemp;
 volatile CONTROLPILOT_STM32_EVSE_MODE            CONTROLPILOT_STM32_EVSE_ACTIVE_MODE;
 volatile CONTROLPILOT_STM32_EVSE_MODE            CONTROLPILOT_STM32_EVSE_REQUESTED_MODE;
 volatile CONTROLPILOT_STM32_STATE                CONTROLPILOT_STM32_EVSE_ACTIVE_PWM_STATE;
+volatile CONTROLPILOT_STM32_EVSE_MODE            myStatus;
 volatile uint16_t                                CONTROLPILOT_STM32_CP_VOLTAGE_LOW;
 volatile uint16_t                                CONTROLPILOT_STM32_CP_VOLTAGE_HIGH;
 volatile uint8_t                                 CONTROLPILOT_STM32_EVSE_MODE_SWITCH_COUNTER;
