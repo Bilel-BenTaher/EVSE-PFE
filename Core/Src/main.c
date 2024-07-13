@@ -104,8 +104,10 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HELPER_STM32_initSystemVariables();
   CONTROLPILOT_STM32_configure();
-  //CONTROLPILOT_STM32_timerHighStart();
   OLED_STM32_initDisplay();
+
+  //CONTROLPILOT_STM32_timerHighStart();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */

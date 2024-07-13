@@ -20,25 +20,25 @@ uint8_t OLED_STM32_displayBuffer[DISPLAY_BUFFER_LENGTH];
 void OLED_STM32_initDisplay(void) {
 
 	for (int i = 0; i < DISPLAY_BUFFER_LENGTH; i++) { OLED_STM32_displayBuffer[i] = 0; }
-	OLED_STM32_digitalWrite(OLED_RST_PIN, GPIO_PIN_RESET);
-	OLED_STM32_digitalWrite(OLED_RST_PIN, GPIO_PIN_SET);
-	OLED_STM32_digitalWrite(OLED_CS_PIN, GPIO_PIN_RESET);
+	OLED_STM32_digitalWrite(OLED_RST_PIN_Pin, GPIO_PIN_RESET);
+	OLED_STM32_digitalWrite(OLED_RST_PIN_Pin, GPIO_PIN_SET);
+	OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_RESET);
 	OLED_STM32_sendBuffer(OLED_STM32_commandBuffer, OLED_SPI_COMMAND, COMMAND_BUFFER_LENGTH);
 	OLED_STM32_sendBuffer(OLED_STM32_displayBuffer, OLED_SPI_DATA, DISPLAY_BUFFER_LENGTH);
 	OLED_STM32_drawMonospaceString(38,28, Bienvenue);
 	OLED_STM32_drawMonospaceString(20,56,"A");
 	OLED_STM32_drawMonospaceString(46,56,"Saisir");
 	OLED_STM32_drawMonospaceString(105,56,"M");
-	OLED_STM32_digitalWrite(OLED_CS_PIN, GPIO_PIN_SET);
+	OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_SET);
 
 }
 
 
 void OLED_STM32_sendBuffer(uint8_t *buffer, uint8_t bufferType, uint16_t numberOfElements) {
     if (bufferType == OLED_SPI_DATA) {
-        OLED_STM32_digitalWrite(OLED_DC_PIN, GPIO_PIN_SET);
+        OLED_STM32_digitalWrite(OLED_DC_PIN_Pin, GPIO_PIN_SET);
     } else {
-        OLED_STM32_digitalWrite(OLED_DC_PIN, GPIO_PIN_RESET);
+        OLED_STM32_digitalWrite(OLED_DC_PIN_Pin, GPIO_PIN_RESET);
     }
 
     for (uint16_t i = 0; i < numberOfElements; i++) {
@@ -49,14 +49,14 @@ void OLED_STM32_sendBuffer(uint8_t *buffer, uint8_t bufferType, uint16_t numberO
     while (__HAL_SPI_GET_FLAG(&hspiX, SPI_FLAG_BSY) != RESET); // Wait until SPI is not busy anymore
 
     if (bufferType == OLED_SPI_COMMAND) {
-        OLED_STM32_digitalWrite(OLED_DC_PIN, GPIO_PIN_SET);
+        OLED_STM32_digitalWrite(OLED_DC_PIN_Pin, GPIO_PIN_SET);
     }
 }
 
 // Helper function for pulling OLED pins high or low.
 // Example: OLED_STM32_digitalWrite(OLED_DC_PIN, HIGH);
     void OLED_STM32_digitalWrite(uint16_t GPIO_Pin, GPIO_PinState PinState) {
-        if (GPIO_Pin == OLED_CS_PIN) {
+        if (GPIO_Pin == OLED_CS_PIN_Pin) {
             HAL_GPIO_WritePin(GPIOB, GPIO_Pin, PinState);
         } else {
             HAL_GPIO_WritePin(GPIOA, GPIO_Pin, PinState);
@@ -67,9 +67,9 @@ void OLED_STM32_sendBuffer(uint8_t *buffer, uint8_t bufferType, uint16_t numberO
 // This function send the current array of the OLED buffer to the device over SPI.
 void OLED_STM32_updateDisplay(void) {
 
-	OLED_STM32_digitalWrite(OLED_CS_PIN,GPIO_PIN_RESET);
+	OLED_STM32_digitalWrite(OLED_CS_PIN_Pin,GPIO_PIN_RESET);
 	OLED_STM32_sendBuffer(OLED_STM32_displayBuffer, OLED_SPI_DATA, DISPLAY_BUFFER_LENGTH);
-	OLED_STM32_digitalWrite(OLED_CS_PIN, GPIO_PIN_SET);
+	OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_SET);
 
 }
 
