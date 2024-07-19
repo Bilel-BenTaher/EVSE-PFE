@@ -21,7 +21,6 @@
 #define    COMMAND_BUFFER_LENGTH 26
 #define    DISPLAY_BUFFER_LENGTH OLED_DISPLAY_WIDTH * OLED_DISPLAY_HEIGHT / 8
 
-
 // Parameter Definitions in correct order
 #define    OLED_DISPLAYOFF       0xAE // turn display off
 #define    OLED_SETCLOCKDIV      0xD5 // clock divide ratio
@@ -58,6 +57,10 @@ void OLED_STM32_digitalWrite(uint16_t GPIO_Pin, GPIO_PinState PinState);
 void OLED_STM32_updateDisplay(void);
 void OLED_STM32_clearDisplay(void);
 void OLED_STM32_drawPixel(uint8_t x, uint8_t y);
+void OLED_STM32_updateMain_DISCONNECTEDView(void);
+void OLED_STM32_updateMain_CHARGINGView(void);
+void OLED_STM32_updateMain_FAULTView(void);
+void OLED_STM32_updateMain_BienvenueView(void);
 void OLED_STM32_updateMainView(void);
 void OLED_STM32_drawMonospaceCharacter(uint8_t xPosOffset, uint8_t yPosOffset, uint8_t myChar);
 void OLED_STM32_drawMonospaceString(uint8_t xPos, uint8_t yPos, const char* myString);

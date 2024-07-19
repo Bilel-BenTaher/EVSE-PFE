@@ -61,7 +61,6 @@ void CONTROLPILOT_STM32_startADCConversion(CONTROLPILOT_STM32_EVSE_SIDE activeSi
 	    }
 	    // Stop ADC conversion
 	    HAL_ADC_Stop(&hadc4);
-
 	    // Vdd calculation
 	    double Vrefint  = (double)ADC_raw[3];
 	    double Vrefint_cal_float = (double)(*VREFINT_CAL_ADDR);
@@ -71,6 +70,7 @@ void CONTROLPILOT_STM32_startADCConversion(CONTROLPILOT_STM32_EVSE_SIDE activeSi
 	    // EVSE_IN calculation
 	    double ADCVoltageFloat = (double)ADC_raw[0];
 	    double cpVoltageFloat = Vddfloat * ADCVoltageFloat / 4095.0;
+	    HELPER_STM32_setCurrentVoltage(cpVoltageFloat) ;
 	   	        if (activeSide == HIGH) {
 	   	            CONTROLPILOT_STM32_CP_VOLTAGE_HIGH = (uint16_t)cpVoltageFloat;
 	   	        } else {
@@ -82,7 +82,9 @@ void CONTROLPILOT_STM32_startADCConversion(CONTROLPILOT_STM32_EVSE_SIDE activeSi
 	   	double  ADCCurrentFloat = (double)ADC_raw[1];
 	    double cpCurrentFloat = Vddfloat * ADCCurrentFloat / 4095.0;
 	    HELPER_STM32_setCurrentAmpere(cpCurrentFloat);
-
+	    //Power calculation
+	    double cpPowerFloat=cpCurrentFloat*cpVoltageFloat;
+	    HELPER_STM32_setCurrentPower(cpPowerFloat);
 	    // Temp calculation; reduced to Vsense to lower workload on this function
 	    double Temprefint = (double)ADC_raw[2];
 	    double VsenseCurrent = Vddfloat * Temprefint / 4095.0;
@@ -183,7 +185,6 @@ void TIM16_IRQHandler(void) {
         switch (CONTROLPILOT_STM32_CP_VOLTAGE_HIGH) {
             case 2952 ... 3200:
                 CONTROLPILOT_STM32_SWITCH_VEHICLE_STATUS(DISCONNECTED);
-                needsUpdate == 1;
                 break;
             case 2582 ... 2830:
                 if (CONTROLPILOT_STM32_EVSE_ACTIVE_PWM_STATE == INACTIVE) {
@@ -194,7 +195,6 @@ void TIM16_IRQHandler(void) {
                 break;
             case 2212 ... 2459:
                 CONTROLPILOT_STM32_SWITCH_VEHICLE_STATUS(CHARGING);
-                needsUpdate == 1;
                 break;
             case 1841 ... 2089:
                 CONTROLPILOT_STM32_SWITCH_VEHICLE_STATUS(CHARGING_COOLED);
@@ -205,12 +205,6 @@ void TIM16_IRQHandler(void) {
         }
     }
         else {CONTROLPILOT_STM32_SWITCH_VEHICLE_STATUS(FAULT);}
-        myStatus = currentStatus;
-        if ((lastStatus != myStatus)| (needsUpdate == 1) )
-        {
-        OLED_STM32_updateMainView();
-        lastStatus = myStatus;
-        }
     }
 }
 
@@ -229,12 +223,6 @@ void TIM17_IRQHandler(void) {
         }
         // Set EVSE_STATE to FAULT if negative PWM voltage is reduced due to shorted or faulty safety diode.
         if (CONTROLPILOT_STM32_CP_VOLTAGE_LOW > 150 ||newMaximumAmpere>60 ) { CONTROLPILOT_STM32_SWITCH_VEHICLE_STATUS(FAULT); }
-        myStatus = currentStatus;
-        if ((lastStatus != myStatus)| (needsUpdate == 1))
-          {
-            OLED_STM32_updateMainView();
-            lastStatus = myStatus;
-          }
 	}
 
 }

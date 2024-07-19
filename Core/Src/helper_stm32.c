@@ -46,17 +46,25 @@ void HELPER_STM32_setCurrentAmpere(uint8_t newCurrentAmpere) {
 
 }
 
+uint8_t HELPER_STM32_getCurrentPower(void){
+	return currentPower;
+}
 
-uint8_t HELPER_STM32_getMaximumAmpere(void) {
+void HELPER_STM32_setCurrentPower(uint8_t newCurrentPower ){
 
-	return maximumAmpere;
+	currentPower=newCurrentPower;
+}
+
+uint8_t HELPER_STM32_getCurrentVoltage(void) {
+
+	return currentVoltage;
 
 }
 
 
-void HELPER_STM32_setMaximumAmpere(uint8_t newMaximumAmpere) {
+void HELPER_STM32_setCurrentVoltage(uint8_t NewcurrentVoltage) {
 
-	maximumAmpere = newMaximumAmpere;
+	currentVoltage = NewcurrentVoltage;
 }
 
 
@@ -94,13 +102,6 @@ void HELPER_STM32_setNeedsUpdate(uint8_t newNeedsUpdate) {
 	needsUpdate = newNeedsUpdate;
 
 }
-
-
-// A delay function based purely on the performance of the microprocessor.
-void delayMilliseconds (int milliseconds) {
-
-	HAL_Delay(ms);
-	}
 
 
 

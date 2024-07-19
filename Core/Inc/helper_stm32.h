@@ -29,7 +29,8 @@ typedef enum { DISCONNECTED = 0, CONNECTED_NO_PWM = 1, CONNECTED = 2, CHARGING =
 volatile 	CONTROLPILOT_STM32_EVSE_MODE 		currentStatus;
 volatile 	CONTROLPILOT_STM32_EVSE_MODE 		lastStatus;
 volatile 	uint8_t 							currentAmpere;
-volatile 	uint8_t 							maximumAmpere;
+volatile 	uint8_t 							currentPower;
+volatile 	uint8_t 							currentVoltage;
 volatile 	uint16_t 							VsenseCurrent;
 volatile	uint16_t							previousTempArray[HELPER_STM32_MOVINGAVERAGE];
 volatile	uint8_t								needsUpdate;
@@ -41,10 +42,13 @@ CONTROLPILOT_STM32_EVSE_MODE HELPER_STM32_getCurrentStatus(void);
 void HELPER_STM32_setCurrentStatus(CONTROLPILOT_STM32_EVSE_MODE newCurrentStatus);
 uint8_t HELPER_STM32_getCurrentAmpere(void);
 void HELPER_STM32_setCurrentAmpere(uint8_t newCurrentAmpere);
-uint8_t HELPER_STM32_getMaximumAmpere(void);
-void HELPER_STM32_setMaximumAmpere(uint8_t newMaximumAmpere);
+uint8_t HELPER_STM32_getCurrentPower(void);
+void HELPER_STM32_setCurrentPower(uint8_t newCurrentPower);
+uint8_t HELPER_STM32_getCurrentVoltage(void);
+void HELPER_STM32_setCurrentVoltage(uint8_t NewcurrentVoltage);
 void HELPER_STM32_setCurrentTemp(uint16_t VsenseCurrent);
 int8_t HELPER_STM32_getCurrentTemp(void);
 void HELPER_STM32_setNeedsUpdate(uint8_t newNeedsUpdate);
 void HELPER_STM32_updateLoop(void);
-void delayMilliseconds (int milliseconds);
+
+

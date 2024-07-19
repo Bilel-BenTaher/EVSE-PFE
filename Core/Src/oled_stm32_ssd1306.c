@@ -13,6 +13,7 @@
 
 
 // Variable Declarations
+volatile   uint32_t              chargingStartTime=0;
 uint8_t OLED_STM32_commandBuffer[COMMAND_BUFFER_LENGTH] = {OLED_DISPLAYOFF, OLED_SETCLOCKDIV, OLED_CLOCKDIVSETTING, OLED_SETMULTIPLEX, OLED_MULTIPLEXSETTING, OLED_SETDISPLAYOFFSET, OLED_DISPLAYOFFSET, OLED_SETSTARTLINE, OLED_CHGPUMPSETTING, OLED_SETCHGPUMP, OLED_SETADDRESSMODE, OLED_HORZPAGEMODE, OLED_SEGMENTREMAP, OLED_SCANDIRECTION, OLED_SETCOMPINS, OLED_COMPINSSETTING, OLED_SETCONTRAST, OLED_CONTRASTSETTING, OLED_SETPRECHGPERIOD, OLED_PRECHGPERIOD, OLED_SETVCOMHDESELECT, OLED_VCOMHDESELECTLVL, OLED_DISABLESCROLL, OLED_FULLDISPLAYOFF, OLED_SETNORMALDISPLAY, OLED_DISPLAYON};
 uint8_t OLED_STM32_displayBuffer[DISPLAY_BUFFER_LENGTH];
 
@@ -25,10 +26,6 @@ void OLED_STM32_initDisplay(void) {
 	OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_RESET);
 	OLED_STM32_sendBuffer(OLED_STM32_commandBuffer, OLED_SPI_COMMAND, COMMAND_BUFFER_LENGTH);
 	OLED_STM32_sendBuffer(OLED_STM32_displayBuffer, OLED_SPI_DATA, DISPLAY_BUFFER_LENGTH);
-	OLED_STM32_drawMonospaceString(38,28, Bienvenue);
-	OLED_STM32_drawMonospaceString(20,56,"A");
-	OLED_STM32_drawMonospaceString(46,56,"Saisir");
-	OLED_STM32_drawMonospaceString(105,56,"M");
 	OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_SET);
 
 }
@@ -97,76 +94,24 @@ void OLED_STM32_drawPixel(uint8_t x, uint8_t y) {
 // This function will update the display to represent the main view of the system.
 void OLED_STM32_updateMainView(void) {
 
-	// Basic Layout Setup
-	OLED_STM32_clearDisplay();
-	OLED_STM32_drawLine(0,9,127,9);
-	OLED_STM32_drawLine(0,53,127,53);
-	OLED_STM32_drawMonospaceString(20,56,"A");
-	OLED_STM32_drawMonospaceString(46,56,"Saisir");
-
-	// Maximum Ampere View
-	char maxAmpStr[4] = "   ";
-	if (HELPER_STM32_getMaximumAmpere() < 10) {
-		maxAmpStr[0] = HELPER_STM32_getMaximumAmpere() + 48;
-		maxAmpStr[1] = 0x41; //A
-	} else {
-		maxAmpStr[0] = HELPER_STM32_getMaximumAmpere() / 10 + 48;
-		maxAmpStr[1] = HELPER_STM32_getMaximumAmpere() % 10 + 48;
-		maxAmpStr[2] = 0x41; //A
-	}
-	OLED_STM32_drawMonospaceString(0,0,maxAmpStr);
-
-	// Temperature View
-	char maxTempStr[6] = "     ";
-	int8_t currentTemp = HELPER_STM32_getCurrentTemp();
-	uint8_t offsetValue = 0;
-	// Check if temperature is negative
-	if ( currentTemp < 0) {
-		maxTempStr[0] = 0x2D; // -
-		offsetValue = 1;
-		currentTemp = currentTemp * -1;
-	}
-	// check if temperature is double digit
-	if ((currentTemp > 9) | (currentTemp < -9)) {
-		maxTempStr[0+offsetValue] = currentTemp / 10 + 48;
-		maxTempStr[1+offsetValue] = currentTemp % 10 + 48;
-		offsetValue++;
-	} else {
-		maxTempStr[0+offsetValue] = currentTemp + 48;
-	}
-	// Add the degree symbols
-	maxTempStr[1+offsetValue] = 0xF8; // °
-	maxTempStr[2+offsetValue] = 0x43; // C
-	OLED_STM32_drawMonospaceString(24, 0, maxTempStr);
-
-	// Status View
-	//offsetValue = 0;
-	switch (HELPER_STM32_getCurrentStatus()) {
-		case DISCONNECTED: offsetValue = 37; OLED_STM32_drawMonospaceString(48+offsetValue, 0, "Séparé"); break;
-		case CONNECTED_NO_PWM: offsetValue = 29; OLED_STM32_drawMonospaceString(48+offsetValue,0,"Attachement"); break;
-		case CONNECTED: offsetValue = 29; OLED_STM32_drawMonospaceString(48+offsetValue,0,"Connexion"); break;
-		case CHARGING: offsetValue = 16; OLED_STM32_drawMonospaceString(48+offsetValue,0,"Chargement"); break;
-		case CHARGING_COOLED: offsetValue = 44; OLED_STM32_drawMonospaceString(48+offsetValue,0,"Ventilation"); break;
-		case FAULT: offsetValue = 11; OLED_STM32_drawMonospaceString(48+offsetValue,0,"Erreur"); break;
-	}
-
-	// Large current Ampere View
-	char currentAmpStr[3] = "  ";
-	if (HELPER_STM32_getCurrentAmpere() < 10) {
-		currentAmpStr[0] = HELPER_STM32_getCurrentAmpere() + 48;
-	} else {
-		currentAmpStr[0] = HELPER_STM32_getCurrentAmpere() / 10 + 48;
-		currentAmpStr[1] = HELPER_STM32_getCurrentAmpere() % 10 + 48;
-	}
-	if (HELPER_STM32_getCurrentAmpere() < 10) {
-		offsetValue = 20;
-	} else {
-		offsetValue = 0;
-	}
-	OLED_STM32_drawLargeString(32+offsetValue,18,currentAmpStr);
-	OLED_STM32_drawLargeString(76,18,"A");
-	OLED_STM32_updateDisplay();
-
+	    // Status View
+	    	switch (HELPER_STM32_getCurrentStatus()) {
+	    		case DISCONNECTED: OLED_STM32_updateMain_DISCONNECTEDView();
+	    		break;
+	    		case CHARGING:
+	    			chargingStartTime +=30000;
+	    			DIODE_STM32_SET_LED_GREEN_LOW();
+	    			DIODE_STM32_SET_LED_RED_LOW();
+	    			DIODE_STM32_SET_LED_BLUE_High();
+	    			OLED_STM32_updateMain_CHARGINGView();
+	    		break;
+	    		case FAULT:
+	    			DIODE_STM32_SET_LED_GREEN_LOW();
+	    			DIODE_STM32_SET_LED_BLUE_LOW();
+	    			DIODE_STM32_SET_LED_RED_High();
+	    			OOLED_STM32_updateMain_FAULTView();
+	    		break;
+	    	}
 }
 
 // This function is drawing each 8px tall character glyph into the array of the OLED buffer.
@@ -270,6 +215,242 @@ uint8_t OLED_STM32_getLargeGlyphIndex(uint8_t charIndex) {
 		default: return charIndex - 47;
 	}
 }
+
+void OLED_STM32_updateMain_DISCONNECTEDView()
+{// Basic Layout Setup
+	OLED_STM32_clearDisplay();
+	OLED_STM32_drawLine(0,9,127,9);
+	OLED_STM32_drawLine(0,53,127,53);
+
+	// Temperature View
+	char maxTempStr[6] = "     ";
+	int8_t currentTemp = HELPER_STM32_getCurrentTemp();
+	uint8_t offsetValue = 0;
+	// Check if temperature is negative
+	if ( currentTemp < 0) {
+		maxTempStr[0] = 0x2D; // -
+		offsetValue = 1;
+		currentTemp = currentTemp * -1;
+	}
+	// check if temperature is double digit
+	if ((currentTemp > 9) | (currentTemp < -9)) {
+		maxTempStr[0+offsetValue] = currentTemp / 10 + 48;
+		maxTempStr[1+offsetValue] = currentTemp % 10 + 48;
+		offsetValue++;
+	} else {
+		maxTempStr[0+offsetValue] = currentTemp + 48;
+	}
+	// Add the degree symbols
+	maxTempStr[1+offsetValue] = 0xF8; // °
+	maxTempStr[2+offsetValue] = 0x43; // C
+	maxTempStr[3+offsetValue] ='\0'; // Assurez-vous que la chaîne est terminée;
+	int len_maxTempStr=strlen(maxTempStr)*6 - 2;
+	for(int Tpos1 = 0; Tpos1 < 6; Tpos1++)
+	{
+		if(maxTempStr[Tpos1]=="1")
+		{
+			 len_maxTempStr -= 2;
+		}
+	}
+	 // Draw temperature above the top line and centered
+	 OLED_STM32_drawMonospaceString(64-(len_maxTempStr/2), 0, maxTempStr);
+	 OLED_STM32_drawMonospaceString(12, 32, "Veuillez connecter");
+	 OLED_STM32_drawMonospaceString(21, 33, "votre chargeur");
+     OLED_STM32_updateDisplay();
+
+}
+
+void OLED_STM32_updateMain_CHARGINGView()
+{
+
+	// Basic Layout Setup
+		OLED_STM32_clearDisplay();
+		OLED_STM32_drawLine(0,9,127,9);
+		OLED_STM32_drawLine(0,53,127,53);
+
+		// Temperature View
+		char maxTempStr[6] = "     ";
+		int8_t currentTemp = HELPER_STM32_getCurrentTemp();
+		uint8_t offsetValue = 0;
+		// Check if temperature is negative
+		if ( currentTemp < 0) {
+			maxTempStr[0] = 0x2D; // -
+			offsetValue = 1;
+			currentTemp = currentTemp * -1;
+		}
+		// check if temperature is double digit
+		if ((currentTemp > 9) | (currentTemp < -9)) {
+			maxTempStr[0+offsetValue] = currentTemp / 10 + 48;
+			maxTempStr[1+offsetValue] = currentTemp % 10 + 48;
+			offsetValue++;
+		} else {
+			maxTempStr[0+offsetValue] = currentTemp + 48;
+		}
+		// Add the degree symbols
+		maxTempStr[1+offsetValue] = 0xF8; // °
+		maxTempStr[2+offsetValue] = 0x43; // C
+		maxTempStr[3+offsetValue] ='\0'; // Assurez-vous que la chaîne est terminée;
+		int len_maxTempStr=strlen(maxTempStr)*6 - 2;
+		for(int Tpos1 = 0; Tpos1 < 6; Tpos1++)
+		{
+			if(maxTempStr[Tpos1]=="1")
+			{
+				 len_maxTempStr -= 2;
+			}
+		}
+		 // Draw temperature above the top line and centered
+		 OLED_STM32_drawMonospaceString(64-(len_maxTempStr/2), 0, maxTempStr);
+
+		//  current Ampere View
+		char currentAmpStr[3] = "  ";
+		uint8_t AmpoffsetValue = 0;
+		if (HELPER_STM32_getCurrentAmpere() < 10) {
+			currentAmpStr[0] = HELPER_STM32_getCurrentAmpere() + 48;
+		} else {
+			currentAmpStr[0] = HELPER_STM32_getCurrentAmpere() / 10 + 48;
+			currentAmpStr[1] = HELPER_STM32_getCurrentAmpere() % 10 + 48;
+			AmpoffsetValue++;
+		}
+		// Add the Ampere symbols
+		currentAmpStr[1+AmpoffsetValue] = 0x41; // A
+		// Draw current in the bottom left
+		OLED_STM32_drawMonospaceString(0, 54, currentAmpStr);
+
+	 //  current Voltage View
+		 char currentVoltgStr[5] = "  ";
+		 uint8_t VoltoffsetValue = 0;
+		 if (HELPER_STM32_getCurrentVoltage() < 10) {
+			 currentVoltgStr[0] = HELPER_STM32_getCurrentVoltage() + 48;
+		   }
+		  else {
+		  if (HELPER_STM32_getCurrentVoltage < 100) {
+			  currentVoltgStr[0] = HELPER_STM32_getCurrentVoltage/ 10 + 48;
+			  currentVoltgStr[1] = HELPER_STM32_getCurrentVoltage % 10 + 48;
+			  VoltoffsetValue++;
+		    	 } else {
+		     currentVoltgStr[0] = HELPER_STM32_getCurrentVoltage / 100 + 48;
+		     currentVoltgStr[1] = (HELPER_STM32_getCurrentVoltage / 10) % 10 + 48;
+		     currentVoltgStr[2] = HELPER_STM32_getCurrentVoltage% 10 + 48;
+		     VoltoffsetValue +=2;
+		    	 }
+		    	}
+		 currentVoltgStr[1+VoltoffsetValue]=0x56; //V
+		 currentVoltgStr[2+VoltoffsetValue]='\0';
+
+		   int len_currentVoltgStr = strlen(currentVoltgStr) * 6;
+
+		   for(int Vpos1 = 0; Vpos1 < 5; Vpos1++)
+		   	{
+		   		if(currentVoltgStr[Vpos1]=="1")
+		   		{
+		   			len_currentVoltgStr -= 2;
+		   		}
+		   	}
+	// Draw voltage in the bottom
+		   OLED_STM32_drawMonospaceString(128-len_currentVoltgStr, 54, currentVoltgStr);
+
+	//  current Power View
+
+		    char currentPowerStr[6] = "    "; // Espace réservé pour quatre chiffres et un caractère 'V'
+		    uint8_t PowoffsetValue = 0;
+
+		    if (HELPER_STM32_getCurrentPower < 10) {
+		    	currentPowerStr[0] = HELPER_STM32_getCurrentPower + 48;
+		    } else if (cHELPER_STM32_getCurrentPower < 100) {
+		    	currentPowerStr[0] = HELPER_STM32_getCurrentPower / 10 + 48;
+		    	currentPowerStr[1] = HELPER_STM32_getCurrentPower % 10 + 48;
+		    	PowoffsetValue++;
+		    } else if (currentPow < 1000) {
+		    	currentPowerStr[0] = HELPER_STM32_getCurrentPower / 100 + 48;
+		    	currentPowerStr[1] = (HELPER_STM32_getCurrentPower / 10) % 10 + 48;
+		        currentVoltgStr[2] = HELPER_STM32_getCurrentPower % 10 + 48;
+		        PowoffsetValue += 2;
+		    } else {
+		    	currentPowerStr[0] = HELPER_STM32_getCurrentPower / 1000 + 48;
+		    	currentPowerStr[1] = (HELPER_STM32_getCurrentPower / 100) % 10 + 48;
+		    	currentPowerStr[2] = (HELPER_STM32_getCurrentPower / 10) % 10 + 48;
+		    	currentPowerStr[3] = HELPER_STM32_getCurrentPower % 10 + 48;
+		    	PowoffsetValue += 3;
+		    }
+
+		    currentPowerStr[1+PowoffsetValue] =0x57 ; // Ajout de 'W' après les chiffres
+		    currentPowerStr[2+PowoffsetValue] = '\0'; // Terminaison de la chaîne
+
+		    int len_currentPowerStr = strlen(currentPowerStr) * 6;
+
+		    for (int POWpos1 = 0; POWpos1 < 6; POWpos1++) {
+		        if (currentPowerStr[POWpos1] == '1') {
+		            len_currentPowerStr -= 2;
+		        }
+		    }
+		    // Draw power in the bottom center//
+		    OLED_STM32_drawMonospaceString(64-(len_currentVoltgStr/2), 54, currentPowerStr);
+
+		    // Draw the temperature below the top and centered line
+		    uint32_t seconds = chargingStartTime / 1000;
+		    uint32_t minutes = seconds / 60;
+		    uint32_t hours = minutes / 60;
+		    seconds = seconds % 60;
+		    minutes = minutes % 60;
+		    char buffer[20];
+		    snprintf(buffer, sizeof(buffer), "Time: %02d:%02d", hours, minutes);
+		    OLED_STM32_drawMonospaceString(36,10,buffer);
+		    OLED_STM32_drawMonospaceString(38,32,"En Charge");
+	        OLED_STM32_updateDisplay();
+
+}
+
+void OLED_STM32_updateMain_FAULTView()
+{
+	// Basic Layout Setup
+		OLED_STM32_clearDisplay();
+		OLED_STM32_drawLine(0,9,127,9);
+		OLED_STM32_drawLine(0,53,127,53);
+
+		// Temperature View
+		char maxTempStr[6] = "     ";
+		int8_t currentTemp = HELPER_STM32_getCurrentTemp();
+		uint8_t offsetValue = 0;
+		// Check if temperature is negative
+		if ( currentTemp < 0) {
+			maxTempStr[0] = 0x2D; // -
+			offsetValue = 1;
+			currentTemp = currentTemp * -1;
+		}
+		// check if temperature is double digit
+		if ((currentTemp > 9) | (currentTemp < -9)) {
+			maxTempStr[0+offsetValue] = currentTemp / 10 + 48;
+			maxTempStr[1+offsetValue] = currentTemp % 10 + 48;
+			offsetValue++;
+		} else {
+			maxTempStr[0+offsetValue] = currentTemp + 48;
+		}
+		// Add the degree symbols
+		maxTempStr[1+offsetValue] = 0xF8; // °
+		maxTempStr[2+offsetValue] = 0x43; // C
+		maxTempStr[3+offsetValue] ='\0'; // Assurez-vous que la chaîne est terminée;
+		int len_maxTempStr=strlen(maxTempStr)*6 - 2;
+		for(int Tpos1 = 0; Tpos1 < 6; Tpos1++)
+		{
+			if(maxTempStr[Tpos1]=="1")
+			{
+				 len_maxTempStr -= 2;
+			}
+		}
+		 // Draw temperature above the top line and centered
+		 OLED_STM32_drawMonospaceString(64-(len_maxTempStr/2), 0, maxTempStr);
+		 OLED_STM32_drawMonospaceString(46,32,"Erreur");
+	     OLED_STM32_updateDisplay();
+}
+
+void OLED_STM32_updateMain_BienvenueView()
+{OLED_STM32_clearDisplay();
+OLED_STM32_drawLine(0,9,127,9);
+OLED_STM32_drawLine(0,53,127,53);
+OLED_STM32_drawMonospaceString(38,32, Bienvenue);
+OLED_STM32_updateDisplay();
+}
+
 
 /*void OLED_STM32_drawImage(uint8_t xPosOffset, uint8_t yPosOffset) {
 
