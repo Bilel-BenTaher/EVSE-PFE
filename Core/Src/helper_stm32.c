@@ -6,7 +6,7 @@
  */
 #include "stm32u5xx.h"
 #include "helper_stm32.h"
-
+//#include "usart_stm32_console.h"
 // This function sets the main EVSE related variables and checks if the maximum current
 // value has ever been stored in the FLASH ROM before. If not, it is set to 32A.
 void HELPER_STM32_initSystemVariables(void) {
@@ -87,7 +87,6 @@ int8_t HELPER_STM32_getCurrentTemp(void) {
 
 }
 
-
 // This function is a helper function to pass the measured voltage from the Temperature Sensor to this library.
 // The actual temperature calculation will occur when the temperature is requested to reduce workload.
 void HELPER_STM32_setCurrentTemp(uint16_t newVsenseCurrent) {
@@ -102,7 +101,46 @@ void HELPER_STM32_setNeedsUpdate(uint8_t newNeedsUpdate) {
 	needsUpdate = newNeedsUpdate;
 
 }
+void HELPER_STM32_getSetting(void){
 
+	// Start ADC conversion
+		   HAL_ADC_Start(&hadc4);
+		    // Wait for the end of sequence
+		    for (int i = 0; i < 5; i++)
+		    {
+		        // Poll for end of conversion
+		        HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+		        // Get the ADC value
+		        ADC_raw[i] = HAL_ADC_GetValue(&hadc4);
+		    }
+		    // Stop ADC conversion
+		    	    HAL_ADC_Stop(&hadc4);
+
+		    // Vdd calculation
+		     double Vrefint  = (double)ADC_raw[1];
+		     double Vrefint_cal_float = (double)(*VREFINT_CAL_ADDR);
+		     double Vddfloat = 3000.0 * Vrefint_cal_float / Vrefint;
+
+		     // input current
+		     // If rawVoltage is not 2.5Volt, multiply by a factor.In my case it is 1.035
+		     // This is due to tolerance in voltage divider resister & ADC accuracy
+		     rawVoltage = (float) (ADC_raw[3] * 3.3 * 2 / 4095)*1.035;
+		     current =(rawVoltage - 2.5)/sensitivity;
+		     //USART_STM32_sendStringToUSART("Newcurrent:current ");
+		     HELPER_STM32_setCurrentAmpere(current);
+
+		     // Temp calculation; reduced to Vsense to lower workload on this function
+
+		     double Temprefint = (double)ADC_raw[4];
+		     double VsenseCurrent = Vddfloat * Temprefint / 4095.0;
+		     HELPER_STM32_setCurrentTemp(VsenseCurrent);
+		     MaximumTemp_int=HELPER_STM32_getCurrentTemp();
+		     //USART_STM32_sendStringToUSART("Newtemp:MaximumTemp_int");
+
+
+
+
+}
 
 
 

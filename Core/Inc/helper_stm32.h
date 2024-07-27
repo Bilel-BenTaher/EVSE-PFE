@@ -34,7 +34,10 @@ volatile 	uint8_t 							currentVoltage;
 volatile 	uint16_t 							VsenseCurrent;
 volatile	uint16_t							previousTempArray[HELPER_STM32_MOVINGAVERAGE];
 volatile	uint8_t								needsUpdate;
-
+extern      uint16_t                            readValue;
+extern 	    float 								sensitivity = 0.66; // 0.66 for 30A Model
+extern      float 								rawVoltage;
+extern      float 								current;
 
 // Function Declarations
 void HELPER_STM32_initSystemVariables(void);
@@ -50,5 +53,6 @@ void HELPER_STM32_setCurrentTemp(uint16_t VsenseCurrent);
 int8_t HELPER_STM32_getCurrentTemp(void);
 void HELPER_STM32_setNeedsUpdate(uint8_t newNeedsUpdate);
 void HELPER_STM32_updateLoop(void);
+void HELPER_STM32_getSetting(void);
 
 

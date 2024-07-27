@@ -52,9 +52,9 @@ void CONTROLPILOT_STM32_startADCConversion(CONTROLPILOT_STM32_EVSE_SIDE activeSi
 	// Start ADC conversion
 	   HAL_ADC_Start(&hadc4);
 	    // Wait for the end of sequence
-	    for (int i = 0; i < 4; i++) {
+	    for (int i = 0; i < 2; i++) {
 	        // Poll for end of conversion
-	        HAL_ADC_PollForConversion(&hadc4, HAL_MAX_DELAY);
+	        HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
 
 	        // Get the ADC value
 	        ADC_raw[i] = HAL_ADC_GetValue(&hadc4);
@@ -62,10 +62,9 @@ void CONTROLPILOT_STM32_startADCConversion(CONTROLPILOT_STM32_EVSE_SIDE activeSi
 	    // Stop ADC conversion
 	    HAL_ADC_Stop(&hadc4);
 	    // Vdd calculation
-	    double Vrefint  = (double)ADC_raw[3];
+	    double Vrefint  = (double)ADC_raw[1];
 	    double Vrefint_cal_float = (double)(*VREFINT_CAL_ADDR);
 	    double Vddfloat = 3000.0 * Vrefint_cal_float / Vrefint;
-
 
 	    // EVSE_IN calculation
 	    double ADCVoltageFloat = (double)ADC_raw[0];
@@ -77,19 +76,14 @@ void CONTROLPILOT_STM32_startADCConversion(CONTROLPILOT_STM32_EVSE_SIDE activeSi
 	   	            CONTROLPILOT_STM32_CP_VOLTAGE_LOW = (uint16_t)cpVoltageFloat;
 	   	        }
 
-
-	    // input current
-	   	double  ADCCurrentFloat = (double)ADC_raw[1];
-	    double cpCurrentFloat = Vddfloat * ADCCurrentFloat / 4095.0;
-	    HELPER_STM32_setCurrentAmpere(cpCurrentFloat);
 	    //Power calculation
 	    double cpPowerFloat=cpCurrentFloat*cpVoltageFloat;
 	    HELPER_STM32_setCurrentPower(cpPowerFloat);
 	    // Temp calculation; reduced to Vsense to lower workload on this function
-	    double Temprefint = (double)ADC_raw[2];
+	    double Temprefint = (double)ADC_raw[3];
 	    double VsenseCurrent = Vddfloat * Temprefint / 4095.0;
 	    HELPER_STM32_setCurrentTemp(VsenseCurrent);
-	    newMaximumTemp=HELPER_STM32_getCurrentTemp();
+	    MaximumTemp_int=HELPER_STM32_getCurrentTemp();
 	}
 
 
@@ -169,11 +163,11 @@ void CONTROLPILOT_STM32_setChargingCurrent(void) {
 
 // BUG found! when connecting with the fault condition, no fault is detected.
 void TIM16_IRQHandler(void) {
-
     if (TIM_GetITStatus(CONTROLPILOT_STM32_TIMER_HIGH, TIM_IT_Update) != RESET) {
         TIM_ClearITPendingBit(CONTROLPILOT_STM32_TIMER_HIGH, TIM_IT_Update);
-        if(newMaximumTemp<80){
-        CONTROLPILOT_STM32_setHigh();
+        MaximumTemp_ext = DS1621_getTemperature(&hi2c1);
+        if(MaximumTemp_int<85&& MaximumTemp_ext<85){
+         CONTROLPILOT_STM32_setHigh();
         CONTROLPILOT_STM32_startADCConversion(HIGH);
         CONTROLPILOT_STM32_setChargingCurrent();
         if (CONTROLPILOT_STM32_EVSE_ACTIVE_PWM_STATE == ACTIVE) { CONTROLPILOT_STM32_timerLowStart(); }

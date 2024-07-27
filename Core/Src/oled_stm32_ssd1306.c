@@ -13,7 +13,6 @@
 
 
 // Variable Declarations
-volatile   uint32_t              chargingStartTime=0;
 uint8_t OLED_STM32_commandBuffer[COMMAND_BUFFER_LENGTH] = {OLED_DISPLAYOFF, OLED_SETCLOCKDIV, OLED_CLOCKDIVSETTING, OLED_SETMULTIPLEX, OLED_MULTIPLEXSETTING, OLED_SETDISPLAYOFFSET, OLED_DISPLAYOFFSET, OLED_SETSTARTLINE, OLED_CHGPUMPSETTING, OLED_SETCHGPUMP, OLED_SETADDRESSMODE, OLED_HORZPAGEMODE, OLED_SEGMENTREMAP, OLED_SCANDIRECTION, OLED_SETCOMPINS, OLED_COMPINSSETTING, OLED_SETCONTRAST, OLED_CONTRASTSETTING, OLED_SETPRECHGPERIOD, OLED_PRECHGPERIOD, OLED_SETVCOMHDESELECT, OLED_VCOMHDESELECTLVL, OLED_DISABLESCROLL, OLED_FULLDISPLAYOFF, OLED_SETNORMALDISPLAY, OLED_DISPLAYON};
 uint8_t OLED_STM32_displayBuffer[DISPLAY_BUFFER_LENGTH];
 
@@ -99,7 +98,6 @@ void OLED_STM32_updateMainView(void) {
 	    		case DISCONNECTED: OLED_STM32_updateMain_DISCONNECTEDView();
 	    		break;
 	    		case CHARGING:
-	    			chargingStartTime +=30000;
 	    			DIODE_STM32_SET_LED_GREEN_LOW();
 	    			DIODE_STM32_SET_LED_RED_LOW();
 	    			DIODE_STM32_SET_LED_BLUE_High();
@@ -217,10 +215,15 @@ uint8_t OLED_STM32_getLargeGlyphIndex(uint8_t charIndex) {
 }
 
 void OLED_STM32_updateMain_DISCONNECTEDView()
-{// Basic Layout Setup
+{
+	// Basic Layout Setup
+	get_time() ;
+	get_date();
 	OLED_STM32_clearDisplay();
 	OLED_STM32_drawLine(0,9,127,9);
 	OLED_STM32_drawLine(0,53,127,53);
+	OLED_STM32_drawMonospaceString(0,0,Time);
+	OLED_STM32_drawMonospaceString(86,0,date);
 
 	// Temperature View
 	char maxTempStr[6] = "     ";
@@ -263,10 +266,14 @@ void OLED_STM32_updateMain_DISCONNECTEDView()
 void OLED_STM32_updateMain_CHARGINGView()
 {
 
+	get_time() ;
+	get_date();
 	// Basic Layout Setup
 		OLED_STM32_clearDisplay();
 		OLED_STM32_drawLine(0,9,127,9);
 		OLED_STM32_drawLine(0,53,127,53);
+		OLED_STM32_drawMonospaceString(0,0,Time);
+		OLED_STM32_drawMonospaceString(86,0,date);
 
 		// Temperature View
 		char maxTempStr[6] = "     ";
@@ -386,15 +393,6 @@ void OLED_STM32_updateMain_CHARGINGView()
 		    // Draw power in the bottom center//
 		    OLED_STM32_drawMonospaceString(64-(len_currentVoltgStr/2), 54, currentPowerStr);
 
-		    // Draw the temperature below the top and centered line
-		    uint32_t seconds = chargingStartTime / 1000;
-		    uint32_t minutes = seconds / 60;
-		    uint32_t hours = minutes / 60;
-		    seconds = seconds % 60;
-		    minutes = minutes % 60;
-		    char buffer[20];
-		    snprintf(buffer, sizeof(buffer), "Time: %02d:%02d", hours, minutes);
-		    OLED_STM32_drawMonospaceString(36,10,buffer);
 		    OLED_STM32_drawMonospaceString(38,32,"En Charge");
 	        OLED_STM32_updateDisplay();
 
@@ -403,9 +401,13 @@ void OLED_STM32_updateMain_CHARGINGView()
 void OLED_STM32_updateMain_FAULTView()
 {
 	// Basic Layout Setup
+		get_time() ;
+		get_date();
 		OLED_STM32_clearDisplay();
 		OLED_STM32_drawLine(0,9,127,9);
 		OLED_STM32_drawLine(0,53,127,53);
+		OLED_STM32_drawMonospaceString(0,0,Time);
+		OLED_STM32_drawMonospaceString(86,0,date);
 
 		// Temperature View
 		char maxTempStr[6] = "     ";
@@ -444,9 +446,14 @@ void OLED_STM32_updateMain_FAULTView()
 }
 
 void OLED_STM32_updateMain_BienvenueView()
-{OLED_STM32_clearDisplay();
+{
+get_time() ;
+get_date();
+OLED_STM32_clearDisplay();
 OLED_STM32_drawLine(0,9,127,9);
 OLED_STM32_drawLine(0,53,127,53);
+OLED_STM32_drawMonospaceString(0,0,Time);
+OLED_STM32_drawMonospaceString(86,0,date);
 OLED_STM32_drawMonospaceString(38,32, Bienvenue);
 OLED_STM32_updateDisplay();
 }
