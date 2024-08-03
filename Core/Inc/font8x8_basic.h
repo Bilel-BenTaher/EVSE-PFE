@@ -8,9 +8,6 @@
 #ifndef INC_FONT8X8_BASIC_H_
 #define INC_FONT8X8_BASIC_H_
 
-
-
-#endif /* INC_FONT8X8_BASIC_H_ */
 // Monospace 8x8 Font Definition
 static const char monospaceFont[103][8] = {
 	{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},	// 0x20 ' '
@@ -329,3 +326,4 @@ static const uint8_t imageBits[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 */
+#endif /* INC_FONT8X8_BASIC_H_ */

@@ -9,10 +9,11 @@
 #define INC_RTC_STM32_H_
 
 // Variable Definitions
-extern char                                         Time[10];
-extern char  										date[10];
+extern char Time[10];
+extern char date[10];
 
 // Function Declarations
-void get_time(void) ;
-void get_date(void) ;
+void get_time(void);
+void get_date(void);
+
 #endif /* INC_RTC_STM32_H_ */

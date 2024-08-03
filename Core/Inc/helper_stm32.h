@@ -1,43 +1,41 @@
-/*
- * helper_stm32.h
- *
+/* helper_stm32.h
  *  Created on: Jun 25, 2024
  *      Author: hp
  */
 
-// HELPER_STM32 library: This library provides helper functions and definitions for STM32U5XX chip.
+// HELPER_STM32 library: Provides helper functions and definitions for STM32U5XX chip.
 
-
-#ifndef INC_HELPER_STM32_H_
-#define INC_HELPER_STM32_H_
-
-#endif /* INC_HELPER_STM32_H_ */
+#ifndef HELPER_STM32_H_
+#define HELPER_STM32_H_
 
 // Type Definitions
-#ifndef EVSEMODE_H
-#define EVSEMODE_H
-typedef enum { DISCONNECTED = 0, CONNECTED_NO_PWM = 1, CONNECTED = 2, CHARGING = 3, CHARGING_COOLED = 4, FAULT = 5 } CONTROLPILOT_STM32_EVSE_MODE;
-#endif /* EVSEMODE_H */
+typedef enum {
+    DISCONNECTED = 0,
+    CONNECTED_NO_PWM = 1,
+    CONNECTED = 2,
+    CHARGING = 3,
+    CHARGING_COOLED = 4,
+    FAULT = 5
+} CONTROLPILOT_STM32_EVSE_MODE;
 
-
-// Variable Definitions
-#define		TS_CAL1_ADDRPTR						((uint16_t*) ((uint32_t) 0x0BFA0710))
-#define		HELPER_STM32_MOVINGAVERAGE			 32
-
+// Constants
+#define TS_CAL1_ADDRPTR              ((uint16_t*) 0x0BFA0710)
+#define HELPER_STM32_MOVINGAVERAGE   32
+#define ADC_SAMPLES                  128
 
 // Variable Declarations
-volatile 	CONTROLPILOT_STM32_EVSE_MODE 		currentStatus;
-volatile 	CONTROLPILOT_STM32_EVSE_MODE 		lastStatus;
-volatile 	uint8_t 							currentAmpere;
-volatile 	uint8_t 							currentPower;
-volatile 	uint8_t 							currentVoltage;
-volatile 	uint16_t 							VsenseCurrent;
-volatile	uint16_t							previousTempArray[HELPER_STM32_MOVINGAVERAGE];
-volatile	uint8_t								needsUpdate;
-extern      uint16_t                            readValue;
-extern 	    float 								sensitivity = 0.66; // 0.66 for 30A Model
-extern      float 								rawVoltage;
-extern      float 								current;
+extern float voltage_samples[ADC_SAMPLES];
+extern volatile CONTROLPILOT_STM32_EVSE_MODE currentStatus;
+extern volatile CONTROLPILOT_STM32_EVSE_MODE lastStatus;
+extern volatile uint8_t currentAmpere;
+extern volatile uint8_t currentPower;
+extern volatile uint8_t currentVoltage;
+extern volatile uint16_t VsenseCurrent;
+extern volatile uint16_t previousTempArray[HELPER_STM32_MOVINGAVERAGE];
+extern volatile uint8_t needsUpdate;
+extern float sensitivity; // Default value should be set in .c file
+extern float rawVoltage;
+extern float current;
 
 // Function Declarations
 void HELPER_STM32_initSystemVariables(void);
@@ -47,12 +45,12 @@ uint8_t HELPER_STM32_getCurrentAmpere(void);
 void HELPER_STM32_setCurrentAmpere(uint8_t newCurrentAmpere);
 uint8_t HELPER_STM32_getCurrentPower(void);
 void HELPER_STM32_setCurrentPower(uint8_t newCurrentPower);
-uint8_t HELPER_STM32_getCurrentVoltage(void);
-void HELPER_STM32_setCurrentVoltage(uint8_t NewcurrentVoltage);
+float HELPER_STM32_getCurrentVoltage(void);
 void HELPER_STM32_setCurrentTemp(uint16_t VsenseCurrent);
 int8_t HELPER_STM32_getCurrentTemp(void);
 void HELPER_STM32_setNeedsUpdate(uint8_t newNeedsUpdate);
 void HELPER_STM32_updateLoop(void);
 void HELPER_STM32_getSetting(void);
 
+#endif /* HELPER_STM32_H_ */
 

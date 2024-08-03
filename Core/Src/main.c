@@ -40,6 +40,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc4;
 
 I2C_HandleTypeDef hi2c1;
@@ -72,6 +73,7 @@ static void MX_TIM7_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_RTC_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -119,6 +121,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_RTC_Init();
   MX_I2C1_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   HELPER_STM32_initSystemVariables();
   CONTROLPILOT_STM32_configure();
@@ -159,20 +162,13 @@ void SystemClock_Config(void)
 
   /** Initializes the CPU, AHB and APB buses clocks
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE
+                              |RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV1;
-  RCC_OscInitStruct.PLL.PLLM = 2;
-  RCC_OscInitStruct.PLL.PLLN = 24;
-  RCC_OscInitStruct.PLL.PLLP = 2;
-  RCC_OscInitStruct.PLL.PLLQ = 2;
-  RCC_OscInitStruct.PLL.PLLR = 4;
-  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
-  RCC_OscInitStruct.PLL.PLLFRACN = 0;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -183,7 +179,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
                               |RCC_CLOCKTYPE_PCLK3;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
@@ -197,6 +193,68 @@ void SystemClock_Config(void)
   /** Enables the Clock Security System
   */
   HAL_RCCEx_EnableLSECSS();
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Common config
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.GainCompensation = 0;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.LowPowerAutoWait = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DiscontinuousConvMode = ENABLE;
+  hadc1.Init.NbrOfDiscConversion = 1;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.TriggerFrequencyMode = ADC_TRIGGER_FREQ_HIGH;
+  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc1.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
+  hadc1.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
+  hadc1.Init.OversamplingMode = DISABLE;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_3;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_5CYCLE;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -227,15 +285,17 @@ static void MX_ADC4_Init(void)
   hadc4.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc4.Init.LowPowerAutoPowerOff = ADC_LOW_POWER_NONE;
   hadc4.Init.LowPowerAutoWait = DISABLE;
-  hadc4.Init.ContinuousConvMode = ENABLE;
-  hadc4.Init.NbrOfConversion = 5;
+  hadc4.Init.ContinuousConvMode = DISABLE;
+  hadc4.Init.NbrOfConversion = 4;
+  hadc4.Init.DiscontinuousConvMode = ENABLE;
+  hadc4.Init.NbrOfDiscConversion = 4;
   hadc4.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc4.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc4.Init.DMAContinuousRequests = DISABLE;
   hadc4.Init.TriggerFrequencyMode = ADC_TRIGGER_FREQ_HIGH;
   hadc4.Init.VrefProtection = ADC_VREF_PPROT_NONE;
   hadc4.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-  hadc4.Init.SamplingTimeCommon1 = ADC4_SAMPLETIME_7CYCLES_5;
+  hadc4.Init.SamplingTimeCommon1 = ADC4_SAMPLETIME_3CYCLES_5;
   hadc4.Init.SamplingTimeCommon2 = ADC4_SAMPLETIME_1CYCLE_5;
   hadc4.Init.OversamplingMode = DISABLE;
   if (HAL_ADC_Init(&hadc4) != HAL_OK)
@@ -266,7 +326,7 @@ static void MX_ADC4_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_9;
+  sConfig.Channel = ADC_CHANNEL_10;
   sConfig.Rank = ADC4_REGULAR_RANK_3;
   if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
   {
@@ -275,17 +335,8 @@ static void MX_ADC4_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_10;
-  sConfig.Rank = ADC4_REGULAR_RANK_4;
-  if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Regular Channel
-  */
   sConfig.Channel = ADC4_CHANNEL_TEMPSENSOR;
-  sConfig.Rank = ADC4_REGULAR_RANK_5;
+  sConfig.Rank = ADC4_REGULAR_RANK_4;
   if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -312,7 +363,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x30E32E37;
+  hi2c1.Init.Timing = 0x10911E24;
   hi2c1.Init.OwnAddress1 = 144;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -705,6 +756,7 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();

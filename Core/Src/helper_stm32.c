@@ -4,143 +4,140 @@
  *  Created on: Jun 25, 2024
  *      Author: hp
  */
+
 #include "stm32u5xx.h"
 #include "helper_stm32.h"
-//#include "usart_stm32_console.h"
-// This function sets the main EVSE related variables and checks if the maximum current
-// value has ever been stored in the FLASH ROM before. If not, it is set to 32A.
+
+// Initializations
+float voltage_samples[ADC_SAMPLES];
+volatile CONTROLPILOT_STM32_EVSE_MODE currentStatus = DISCONNECTED;
+volatile CONTROLPILOT_STM32_EVSE_MODE lastStatus = DISCONNECTED;
+volatile uint8_t currentAmpere = 0;
+volatile uint8_t currentPower = 0;
+volatile uint8_t currentVoltage = 0;
+volatile uint16_t VsenseCurrent = 752;
+volatile uint16_t previousTempArray[HELPER_STM32_MOVINGAVERAGE] = {415};
+volatile uint8_t needsUpdate = 0;
+float sensitivity = 0.66; // 0.66 for 30A Model
+float rawVoltage = 0.0;
+float current = 0.0;
+
+// Function Implementations
+
 void HELPER_STM32_initSystemVariables(void) {
-	HELPER_STM32_setMaximumAmpere(32);
-	lastStatus = DISCONNECTED;
-	VsenseCurrent = 752;
-	for (int i = 0; i < HELPER_STM32_MOVINGAVERAGE; i++) { previousTempArray[i] = 415; }
-	needsUpdate = 0;
-
+    // Initialize system variables
+    HELPER_STM32_setMaximumAmpere(32);
+    lastStatus = DISCONNECTED;
+    VsenseCurrent = 752;
+    for (int i = 0; i < HELPER_STM32_MOVINGAVERAGE; i++) {
+        previousTempArray[i] = 415;
+    }
+    needsUpdate = 0;
 }
-
 
 CONTROLPILOT_STM32_EVSE_MODE HELPER_STM32_getCurrentStatus(void) {
-
-	return currentStatus;
-
+    return currentStatus;
 }
-
 
 void HELPER_STM32_setCurrentStatus(CONTROLPILOT_STM32_EVSE_MODE newCurrentStatus) {
-
-	currentStatus = newCurrentStatus;
-
+    currentStatus = newCurrentStatus;
 }
-
 
 uint8_t HELPER_STM32_getCurrentAmpere(void) {
-
-	return currentAmpere;
-
+    return currentAmpere;
 }
-
 
 void HELPER_STM32_setCurrentAmpere(uint8_t newCurrentAmpere) {
-
-	currentAmpere = newCurrentAmpere;
-
+    currentAmpere = newCurrentAmpere;
 }
 
-uint8_t HELPER_STM32_getCurrentPower(void){
-	return currentPower;
+uint8_t HELPER_STM32_getCurrentPower(void) {
+    return currentPower;
 }
 
-void HELPER_STM32_setCurrentPower(uint8_t newCurrentPower ){
-
-	currentPower=newCurrentPower;
+void HELPER_STM32_setCurrentPower(uint8_t newCurrentPower) {
+    currentPower = newCurrentPower;
 }
 
-uint8_t HELPER_STM32_getCurrentVoltage(void) {
-
-	return currentVoltage;
-
+float HELPER_STM32_getCurrentVoltage(void) {
+    return VoltageSensor_GetRMSVoltage(); // Ensure this function is defined elsewhere
 }
 
-
-void HELPER_STM32_setCurrentVoltage(uint8_t NewcurrentVoltage) {
-
-	currentVoltage = NewcurrentVoltage;
-}
-
-
-// This function is here to reduce the workload from the interrupt-based ADC collecting function.
-// Reference: VsenseTScal is for 30°C at 3000mV VDDA and has a slope of 2.5mV / °C
-// In addition, the temperature is being normalized with a moving average as per definition
 int8_t HELPER_STM32_getCurrentTemp(void) {
-
-	double TSCALraw = (double)(*TS_CAL1_ADDRPTR);
-	double VsenseTScal = 3000.0 * TSCALraw / 4095.0;
-	double Tdelta = (VsenseTScal - VsenseCurrent) / 2.5;
+    double TSCALraw = (double)(*TS_CAL1_ADDRPTR);
+    double VsenseTScal = 3000.0 * TSCALraw / 4095.0;
+    double Tdelta = (VsenseTScal - VsenseCurrent) / 2.5;
     int16_t Tresult = (int16_t)(300.0 + (Tdelta * 10.0));
-    for (int i = 0; i < HELPER_STM32_MOVINGAVERAGE - 1; i++) { previousTempArray[i] = previousTempArray[i+1]; }
+    for (int i = 0; i < HELPER_STM32_MOVINGAVERAGE - 1; i++) {
+        previousTempArray[i] = previousTempArray[i + 1];
+    }
     previousTempArray[HELPER_STM32_MOVINGAVERAGE - 1] = Tresult;
     uint32_t temperatureAverage = 0;
-    for (int i = 0; i < HELPER_STM32_MOVINGAVERAGE; i++) { temperatureAverage = temperatureAverage + previousTempArray[i]; }
+    for (int i = 0; i < HELPER_STM32_MOVINGAVERAGE; i++) {
+        temperatureAverage += previousTempArray[i];
+    }
     int8_t Tfinal = (int8_t)(temperatureAverage / (10 * HELPER_STM32_MOVINGAVERAGE));
-    if (temperatureAverage % 10 > 4) { Tfinal++; }
-	return Tfinal;
-
+    if (temperatureAverage % 10 > 4) {
+        Tfinal++;
+    }
+    return Tfinal;
 }
 
-// This function is a helper function to pass the measured voltage from the Temperature Sensor to this library.
-// The actual temperature calculation will occur when the temperature is requested to reduce workload.
 void HELPER_STM32_setCurrentTemp(uint16_t newVsenseCurrent) {
-
-	VsenseCurrent = newVsenseCurrent;
-
+    VsenseCurrent = newVsenseCurrent;
 }
-
 
 void HELPER_STM32_setNeedsUpdate(uint8_t newNeedsUpdate) {
-
-	needsUpdate = newNeedsUpdate;
-
+    needsUpdate = newNeedsUpdate;
 }
-void HELPER_STM32_getSetting(void){
 
-	// Start ADC conversion
-		   HAL_ADC_Start(&hadc4);
-		    // Wait for the end of sequence
-		    for (int i = 0; i < 5; i++)
-		    {
-		        // Poll for end of conversion
-		        HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-		        // Get the ADC value
-		        ADC_raw[i] = HAL_ADC_GetValue(&hadc4);
-		    }
-		    // Stop ADC conversion
-		    	    HAL_ADC_Stop(&hadc4);
+void HELPER_STM32_getSetting(void) {
+    // Variables for filtered ADC values
+    float ADC_filtered[4] = {0};
+    int num_samples = 5; // Number of measurements for filtering
+    int i;
 
-		    // Vdd calculation
-		     double Vrefint  = (double)ADC_raw[1];
-		     double Vrefint_cal_float = (double)(*VREFINT_CAL_ADDR);
-		     double Vddfloat = 3000.0 * Vrefint_cal_float / Vrefint;
+    // Take multiple samples and calculate the average to avoid spurious values
+    for (i = 0; i < num_samples; i++) {
+        // Start ADC conversion
+        HAL_ADC_Start(&hadc4);
+        // Wait for conversion to complete
+        HAL_ADC_PollForConversion(&hadc4, HAL_MAX_DELAY);
+        // Add the read value to the sum for filtering
+        ADC_filtered[0] += HAL_ADC_GetValue(&hadc4);
+        HAL_ADC_PollForConversion(&hadc4, HAL_MAX_DELAY);
+        ADC_filtered[1] += HAL_ADC_GetValue(&hadc4);
+        HAL_ADC_PollForConversion(&hadc4, HAL_MAX_DELAY);
+        ADC_filtered[2] += HAL_ADC_GetValue(&hadc4);
+        HAL_ADC_PollForConversion(&hadc4, HAL_MAX_DELAY);
+        ADC_filtered[3] += HAL_ADC_GetValue(&hadc4);
+        // Stop ADC conversion
+        HAL_ADC_Stop(&hadc4);
+    }
 
-		     // input current
-		     // If rawVoltage is not 2.5Volt, multiply by a factor.In my case it is 1.035
-		     // This is due to tolerance in voltage divider resister & ADC accuracy
-		     rawVoltage = (float) (ADC_raw[3] * 3.3 * 2 / 4095)*1.035;
-		     current =(rawVoltage - 2.5)/sensitivity;
-		     //USART_STM32_sendStringToUSART("Newcurrent:current ");
-		     HELPER_STM32_setCurrentAmpere(current);
+    // Calculate the average values for each channel
+    for (i = 1; i < 4; i++) {
+        ADC_filtered[i] /= num_samples;
+    }
 
-		     // Temp calculation; reduced to Vsense to lower workload on this function
+    // Vdd calculation
+    double Vrefint = (double)ADC_filtered[1];
+    double Vrefint_cal_float = (double)(*VREFINT_CAL_ADDR);
+    double Vddfloat = 3000.0 * Vrefint_cal_float / Vrefint;
 
-		     double Temprefint = (double)ADC_raw[4];
-		     double VsenseCurrent = Vddfloat * Temprefint / 4095.0;
-		     HELPER_STM32_setCurrentTemp(VsenseCurrent);
-		     MaximumTemp_int=HELPER_STM32_getCurrentTemp();
-		     //USART_STM32_sendStringToUSART("Newtemp:MaximumTemp_int");
+    // Current sensor
+    rawVoltage = (float)(ADC_filtered[2] * 3.3 * 2 / 4095) * 1.035;
+    current = (rawVoltage - 2.5) / sensitivity;
+    HELPER_STM32_setCurrentAmpere(current);
 
-
-
-
+    // Temperature calculation
+    double Temprefint = (double)ADC_filtered[3];
+    VsenseCurrent = Vddfloat * Temprefint / 4095.0;
+    HELPER_STM32_setCurrentTemp(VsenseCurrent);
+    int8_t MaximumTemp_int = HELPER_STM32_getCurrentTemp();
 }
+
+
 
 
 

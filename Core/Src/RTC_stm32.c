@@ -27,4 +27,3 @@ void get_date(void)
 	/* Display date Format: dd-mm-yy */
 	sprintf((char*)date,"%02d.%02d.%2d",gDate.Date, gDate.Month,gDate.Year);
 }
-
