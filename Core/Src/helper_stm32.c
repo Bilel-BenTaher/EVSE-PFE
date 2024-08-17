@@ -12,15 +12,15 @@
 float voltage_samples[ADC_SAMPLES];
 volatile CONTROLPILOT_STM32_EVSE_MODE currentStatus = DISCONNECTED;
 volatile CONTROLPILOT_STM32_EVSE_MODE lastStatus = DISCONNECTED;
+volatile float  CurrentCPVoltage = 0;
+volatile float  CurrentPPVoltage = 0;
 volatile uint8_t currentAmpere = 0;
 volatile uint8_t currentPower = 0;
 volatile uint8_t currentVoltage = 0;
 volatile uint16_t VsenseCurrent = 752;
 volatile uint16_t previousTempArray[HELPER_STM32_MOVINGAVERAGE] = {415};
 volatile uint8_t needsUpdate = 0;
-float sensitivity = 0.66; // 0.66 for 30A Model
-float rawVoltage = 0.0;
-float current = 0.0;
+
 
 // Function Implementations
 
@@ -49,6 +49,13 @@ uint8_t HELPER_STM32_getCurrentAmpere(void) {
 
 void HELPER_STM32_setCurrentAmpere(uint8_t newCurrentAmpere) {
     currentAmpere = newCurrentAmpere;
+}
+float HELPER_STM32_getCurrentCPVoltage(void) {
+    return CurrentCPVoltage;
+}
+
+void HELPER_STM32_setCurrentCPVoltage(float newCurrentCPVoltage) {
+	CurrentCPVoltage = newCurrentCPVoltage;
 }
 
 uint8_t HELPER_STM32_getCurrentPower(void) {
@@ -125,16 +132,16 @@ void HELPER_STM32_getSetting(void) {
     double Vrefint_cal_float = (double)(*VREFINT_CAL_ADDR);
     double Vddfloat = 3000.0 * Vrefint_cal_float / Vrefint;
 
-    // Current sensor
-    rawVoltage = (float)(ADC_filtered[2] * 3.3 * 2 / 4095) * 1.035;
-    current = (rawVoltage - 2.5) / sensitivity;
-    HELPER_STM32_setCurrentAmpere(current);
-
     // Temperature calculation
     double Temprefint = (double)ADC_filtered[3];
     VsenseCurrent = Vddfloat * Temprefint / 4095.0;
     HELPER_STM32_setCurrentTemp(VsenseCurrent);
     int8_t MaximumTemp_int = HELPER_STM32_getCurrentTemp();
+
+    // Current sensor
+       rawVoltage = ((float)ADC_raw[2] * 3.3f * 2.0f / 4095.0f) * 1.035f;
+       current = (rawVoltage - 2.5f) / sensitivity;
+       HELPER_STM32_setCurrentAmpere(current);
 }
 
 

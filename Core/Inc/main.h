@@ -49,6 +49,8 @@ extern "C" {
 
 /* USER CODE END EM */
 
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -90,8 +92,8 @@ void Error_Handler(void);
 #define Temp_STM32_I2C_DS16621_SDA_GPIO_Port GPIOB
 #define Temp_STM32_I2C_DS16621_SCL_Pin GPIO_PIN_6
 #define Temp_STM32_I2C_DS16621_SCL_GPIO_Port GPIOB
-#define CONTROLPILOT_STM32_GPIO_OUT_PIN_Pin GPIO_PIN_0
-#define CONTROLPILOT_STM32_GPIO_OUT_PIN_GPIO_Port GPIOE
+#define CONTROLPILOT_STM32_GPIO_PWM_PIN_Pin GPIO_PIN_8
+#define CONTROLPILOT_STM32_GPIO_PWM_PIN_GPIO_Port GPIOB
 #define CONTROLPILOT_STM32_GPIO_CTCTR_PIN_Pin GPIO_PIN_1
 #define CONTROLPILOT_STM32_GPIO_CTCTR_PIN_GPIO_Port GPIOE
 
