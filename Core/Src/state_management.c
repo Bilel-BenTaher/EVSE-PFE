@@ -27,26 +27,45 @@ static float current = 0.0f;
 static uint32_t ADC_raw[3];  // Array to store raw ADC values
 
 // Function to check state A1
-// This function starts an ADC conversion and updates state_A1 based on the current voltage
+// This function waits for a task notification and then starts an ADC conversion
 void CheckStateA1() {
-    CONTROLPILOT_STM32_startADCConversion();   // Start ADC conversion to measure voltage
-    uint32_t notificationReceived = ulTaskNotifyTake(pdTRUE, portMAX_DELAY); //  Wait for a task notification
-    state_A1 = (HELPER_STM32_getCurrentCPVoltage()== 12 && notificationReceived);  // Set state_A1 to true if voltage equals 12
+    state_A1 = ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // Wait for a task notification
+    CONTROLPILOT_STM32_startADCConversion();           // Start ADC conversion to measure voltage
+}
+
+// Function to check state A2
+// This function waits for a task notification and then starts an ADC conversion
+void CheckStateA2() {
+    state_A2 = ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // Wait for a task notification
+    CONTROLPILOT_STM32_startADCConversion();           // Start ADC conversion to measure voltage
 }
 
 // Function to check and update state B1
-// This function sets state_B1 based on the status of state_A1 and the value of voltage
+// This function waits for a task notification and then starts an ADC conversion
 void CheckStateB1() {
-	CONTROLPILOT_STM32_startADCConversion();   // Start ADC conversion to measure voltage
-    uint32_t notificationReceived = ulTaskNotifyTake(pdTRUE, portMAX_DELAY); //  Wait for a task notification
-    state_B1 = (state_A1 && HELPER_STM32_getCurrentCPVoltage() == 9 && notificationReceived );  // Set state_B1 to true if state_A1 is true and voltage equals 9
+    state_B1 = ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // Wait for a task notification
+    CONTROLPILOT_STM32_startADCConversion();           // Start ADC conversion to measure voltage
 }
 
 // Function to check state B2
-// This function updates state_B2 based on the status of state_B1 and system readiness
+// This function waits for a task notification and then starts an ADC conversion
 void CheckStateB2() {
-	CONTROLPILOT_STM32_startADCConversion();   // Start ADC conversion to measure voltage
-    state_B2 = state_B1;     // Set state_B2 to true if state_B1 is true and system is ready
+    state_B2 = ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // Wait for a task notification
+    CONTROLPILOT_STM32_startADCConversion();           // Start ADC conversion to measure voltage
+}
+
+// Function to check state C1
+// This function waits for a task notification and then starts an ADC conversion
+void CheckStateC1() {
+    state_C1 = ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // Wait for a task notification
+    CONTROLPILOT_STM32_startADCConversion();           // Start ADC conversion to measure voltage
+}
+
+// Function to check state C2
+// This function waits for a task notification and then starts an ADC conversion
+void CheckStateC2() {
+    state_C2 = ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // Wait for a task notification
+    CONTROLPILOT_STM32_startADCConversion();           // Start ADC conversion to measure voltage
 }
 
 void CONTROLPILOT_STM32_startADCConversion(void)

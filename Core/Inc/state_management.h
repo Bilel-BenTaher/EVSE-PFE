@@ -22,14 +22,17 @@ extern bool state_C2;    // Represents the state of component C2
 extern bool state_E;     // Represents the state of component E
 
 // Macros for controlling GPIO pins
-#define CONTROLPILOT_STM32_contactorOn()   HAL_GPIO_WritePin(CONTROLPILOT_STM32_GPIO_CTCTR_PIN_GPIO_Port, CONTROLPILOT_STM32_GPIO_CTCTR_PIN_Pin, GPIO_PIN_SET)
-#define CONTROLPILOT_STM32_contactorOff()  HAL_GPIO_WritePin(CONTROLPILOT_STM32_GPIO_CTCTR_PIN_GPIO_Port, CONTROLPILOT_STM32_GPIO_CTCTR_PIN_Pin, GPIO_PIN_RESET)
+#define HIGHVOLTAGE_STM32_contactorOn()   HAL_GPIO_WritePin(HIGHVOLTAGE_STM32_CTCTR_PIN_GPIO_Port, HIGHVOLTAGE_STM32_CTCTR_PIN_Pin, GPIO_PIN_SET)
+#define HIGHVOLTAGE_STM32_contactorOff()  HAL_GPIO_WritePin(HIGHVOLTAGE_STM32_CTCTR_PIN_GPIO_Port, HIGHVOLTAGE_STM32_CTCTR_PIN_Pin, GPIO_PIN_RESET)
 
 // Function declarations
 // These functions will be used to check the status of various system states
 void CheckStateA1(void);  // Function to check the state of component A1
+void CheckStateA2(void);  // Function to check the state of component A1
 void CheckStateB1(void);  // Function to check the state of component B1
 void CheckStateB2(void);  // Function to check the state of component B2
+void CheckStateC1(void);  // Function to check the state of component C1
+void CheckStateC2(void);  // Function to check the state of component C2
 void CONTROLPILOT_STM32_startADCConversion(void);
 void SetPWMDutyCycle(TIM_HandleTypeDef *htim, uint32_t Channel, float dutyCycle); //Function to Configure the PWM Duty Cycle
 
