@@ -1,476 +1,306 @@
 /*
- * oled_stm32_ssd1306.c
+ * @file oled_stm32_ssd1306.c
+ * @brief Source file for STM32 OLED SSD1306 interface functions.
  *
- *  Created on: Jul 8, 2024
- *      Author: hp
+ * This file contains the implementation of functions used to control and update
+ * the OLED display based on the SSD1306 driver using the STM32 microcontroller.
+ * The functions include display initialization, pixel manipulation, and drawing
+ * of characters and strings on the display.
+ *
+ * @date July 8, 2024
+ * @author hp
  */
+
 #include "stm32u5xx.h"
-#include "oled_stm32_ssd1306.h"
 #include "helper_stm32.h"
 #include "font8x8_basic.h"
 #include <math.h>
 #include <stdlib.h>
 
 
-// Variable Declarations
+// Buffer containing initialization commands for the OLED displays
 uint8_t OLED_STM32_commandBuffer[COMMAND_BUFFER_LENGTH] = {OLED_DISPLAYOFF, OLED_SETCLOCKDIV, OLED_CLOCKDIVSETTING, OLED_SETMULTIPLEX, OLED_MULTIPLEXSETTING, OLED_SETDISPLAYOFFSET, OLED_DISPLAYOFFSET, OLED_SETSTARTLINE, OLED_CHGPUMPSETTING, OLED_SETCHGPUMP, OLED_SETADDRESSMODE, OLED_HORZPAGEMODE, OLED_SEGMENTREMAP, OLED_SCANDIRECTION, OLED_SETCOMPINS, OLED_COMPINSSETTING, OLED_SETCONTRAST, OLED_CONTRASTSETTING, OLED_SETPRECHGPERIOD, OLED_PRECHGPERIOD, OLED_SETVCOMHDESELECT, OLED_VCOMHDESELECTLVL, OLED_DISABLESCROLL, OLED_FULLDISPLAYOFF, OLED_SETNORMALDISPLAY, OLED_DISPLAYON};
+
+// Buffer containing the display data (each bit represents a pixel)
 uint8_t OLED_STM32_displayBuffer[DISPLAY_BUFFER_LENGTH];
 
-// Execute initialization commands and configure display with initial command and display buffer.
+
+/**
+ * @brief Initializes the OLED display by sending the initialization commands and clearing the display buffer.
+ */
 void OLED_STM32_initDisplay(void) {
+    // Clear the display buffer
+    for (int i = 0; i < DISPLAY_BUFFER_LENGTH; i++) {
+        OLED_STM32_displayBuffer[i] = 0;
+    }
 
-	for (int i = 0; i < DISPLAY_BUFFER_LENGTH; i++) { OLED_STM32_displayBuffer[i] = 0; }
-	OLED_STM32_digitalWrite(OLED_RST_PIN_Pin, GPIO_PIN_RESET);
-	OLED_STM32_digitalWrite(OLED_RST_PIN_Pin, GPIO_PIN_SET);
-	OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_RESET);
-	OLED_STM32_sendBuffer(OLED_STM32_commandBuffer, OLED_SPI_COMMAND, COMMAND_BUFFER_LENGTH);
-	OLED_STM32_sendBuffer(OLED_STM32_displayBuffer, OLED_SPI_DATA, DISPLAY_BUFFER_LENGTH);
-	OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_SET);
+    // Perform hardware reset on OLED display
+    OLED_STM32_digitalWrite(OLED_RST_PIN_Pin, GPIO_PIN_RESET);
+    OLED_STM32_digitalWrite(OLED_RST_PIN_Pin, GPIO_PIN_SET);
 
+    // Start communication with the OLED display
+    OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_RESET);
+
+    // Send initialization commands and clear the display
+    OLED_STM32_sendBuffer(OLED_STM32_commandBuffer, OLED_SPI_COMMAND, COMMAND_BUFFER_LENGTH);
+    OLED_STM32_sendBuffer(OLED_STM32_displayBuffer, OLED_SPI_DATA, DISPLAY_BUFFER_LENGTH);
+
+    // End communication with the OLED display
+    OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_SET);
 }
 
 
+/**
+ * @brief Sends a buffer to the OLED display over SPI.
+ *
+ * @param buffer Pointer to the buffer to send.
+ * @param bufferType Type of buffer (OLED_SPI_COMMAND or OLED_SPI_DATA).
+ * @param numberOfElements Number of elements in the buffer to send.
+ */
 void OLED_STM32_sendBuffer(uint8_t *buffer, uint8_t bufferType, uint16_t numberOfElements) {
+    // Set DC pin based on buffer type
     if (bufferType == OLED_SPI_DATA) {
         OLED_STM32_digitalWrite(OLED_DC_PIN_Pin, GPIO_PIN_SET);
     } else {
         OLED_STM32_digitalWrite(OLED_DC_PIN_Pin, GPIO_PIN_RESET);
     }
 
+    // Transmit buffer over SPI
     for (uint16_t i = 0; i < numberOfElements; i++) {
         HAL_SPI_Transmit(&hspi1, &buffer[i], 1, HAL_MAX_DELAY);
-        while (__HAL_SPI_GET_FLAG(&hspi1, SPI_FLAG_TXE) == RESET); // Wait until transmit complete
+        // Wait until transmission is complete
+        while (__HAL_SPI_GET_FLAG(&hspi1, SPI_FLAG_TXE) == RESET);
     }
 
-    while (__HAL_SPI_GET_FLAG(&hspiX, SPI_FLAG_BSY) != RESET); // Wait until SPI is not busy anymore
+    // Wait until SPI is not busy anymore
+    while (__HAL_SPI_GET_FLAG(&hspi1, SPI_FLAG_BSY) != RESET);
 
+    // Reset DC pin after command transmission
     if (bufferType == OLED_SPI_COMMAND) {
         OLED_STM32_digitalWrite(OLED_DC_PIN_Pin, GPIO_PIN_SET);
     }
 }
 
-// Helper function for pulling OLED pins high or low.
-// Example: OLED_STM32_digitalWrite(OLED_DC_PIN, HIGH);
-    void OLED_STM32_digitalWrite(uint16_t GPIO_Pin, GPIO_PinState PinState) {
-        if (GPIO_Pin == OLED_CS_PIN_Pin) {
-            HAL_GPIO_WritePin(GPIOB, GPIO_Pin, PinState);
-        } else {
-            HAL_GPIO_WritePin(GPIOA, GPIO_Pin, PinState);
-        }
+
+/**
+ * @brief Sets the state of a GPIO pin used for OLED control.
+ *
+ * @param GPIO_Pin The GPIO pin to set (e.g., OLED_CS_PIN_Pin).
+ * @param PinState The state to set the pin (GPIO_PIN_SET or GPIO_PIN_RESET).
+ */
+void OLED_STM32_digitalWrite(uint16_t GPIO_Pin, GPIO_PinState PinState) {
+    // Use different ports based on the pin
+    if (GPIO_Pin == OLED_CS_PIN_Pin) {
+        HAL_GPIO_WritePin(GPIOB, GPIO_Pin, PinState);
+    } else {
+        HAL_GPIO_WritePin(GPIOA, GPIO_Pin, PinState);
+    }
+}
+
+
+/**
+ * @brief Sends the current display buffer to the OLED display, updating the visible content.
+ */
+void OLED_STM32_updateDisplay(void) {
+    OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_RESET);
+    OLED_STM32_sendBuffer(OLED_STM32_displayBuffer, OLED_SPI_DATA, DISPLAY_BUFFER_LENGTH);
+    OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_SET);
+}
+
+
+/**
+ * @brief Clears the entire display buffer.
+ *
+ * Note: This function only clears the buffer in memory. To apply the changes on the display,
+ *       call OLED_STM32_updateDisplay().
+ */
+void OLED_STM32_clearDisplay(void) {
+    for (int i = 0; i < DISPLAY_BUFFER_LENGTH; i++) {
+        OLED_STM32_displayBuffer[i] = 0;
+    }
+}
+
+/**
+ * @brief Clears a specific rectangular area of the display buffer.
+ *
+ * @param x The X coordinate of the top-left corner of the area.
+ * @param y The Y coordinate of the top-left corner of the area.
+ * @param myString The string whose display area should be cleared.
+ */
+void OLED_STM32_clearArea(uint8_t x, uint8_t y, const char* myString) {
+	// Ensure the coordinates are within the display bounds
+    if (x >= OLED_DISPLAY_WIDTH || y >= OLED_DISPLAY_HEIGHT) return;
+
+    uint8_t width = 0;
+	uint8_t height = 8;  // Fixed height for monospace font (assuming 8 pixels per character height)
+
+	// Calculate the total width required to clear based on the string length
+    while (myString[counter] != '\0') {
+        width += monospaceFontWidth[OLED_STM32_getMonospaceGlyphIndex(myString[counter])];
+        counter++;
     }
 
+    // Calculate the right and bottom edges of the area to clear
+        uint8_t x_end = (x + width > OLED_DISPLAY_WIDTH) ? OLED_DISPLAY_WIDTH : x + width;
+        uint8_t y_end = (y + height > OLED_DISPLAY_HEIGHT) ? OLED_DISPLAY_HEIGHT : y + height;
 
-// This function send the current array of the OLED buffer to the device over SPI.
-void OLED_STM32_updateDisplay(void) {
+        // Clear the specified area in the display buffer
+        for (uint8_t row = y; row < y_end; row++) {
+            for (uint8_t col = x; col < x_end; col++) {
+                // Calculate the index in the buffer based on the coordinates
+                uint16_t index = (row / 8) * OLED_DISPLAY_WIDTH + col;
 
-	OLED_STM32_digitalWrite(OLED_CS_PIN_Pin,GPIO_PIN_RESET);
-	OLED_STM32_sendBuffer(OLED_STM32_displayBuffer, OLED_SPI_DATA, DISPLAY_BUFFER_LENGTH);
-	OLED_STM32_digitalWrite(OLED_CS_PIN_Pin, GPIO_PIN_SET);
-
+                // Clear the bit corresponding to the position (col, row)
+                OLED_STM32_displayBuffer[index] &= ~(1 << (row % 8));
+        }
+    }
 }
 
 
-// This function clears the array of the OLED buffer.
-// The OLED buffer needs to be sent when drawing is completed by another call.
-void OLED_STM32_clearDisplay(void) {
-
-	for (int i = 0; i < DISPLAY_BUFFER_LENGTH; i++) { OLED_STM32_displayBuffer[i] = 0; }
-
-}
-
-
-// This function can place an individual pixel as active into the array of the OLED buffer.
-// The OLED buffer needs to be sent when drawing is completed by another call.
+/**
+ * @brief Sets a specific pixel in the OLED display buffer as active.
+ *
+ * This function marks a pixel at the specified (x, y) coordinates as active in the display buffer.
+ * The buffer must be sent to the OLED display using another function after all drawing operations are complete.
+ *
+ * @param x The horizontal coordinate of the pixel.
+ * @param y The vertical coordinate of the pixel.
+ */
 void OLED_STM32_drawPixel(uint8_t x, uint8_t y) {
-
-	if ((x < OLED_DISPLAY_WIDTH) && (y < OLED_DISPLAY_HEIGHT)) {
-		OLED_STM32_displayBuffer[x + (y / 8) * OLED_DISPLAY_WIDTH] |= 1 << (y % 8);
-	}
-
+    // Ensure the coordinates are within the display bounds
+    if ((x < OLED_DISPLAY_WIDTH) && (y < OLED_DISPLAY_HEIGHT)) {
+        // Calculate the index in the buffer and set the bit corresponding to the pixel (x, y)
+        OLED_STM32_displayBuffer[x + (y / 8) * OLED_DISPLAY_WIDTH] |= 1 << (y % 8);
+    }
 }
 
-
-// This function will update the display to represent the main view of the system.
-void OLED_STM32_updateMainView(void) {
-
-	    // Status View
-	    	switch (HELPER_STM32_getCurrentStatus()) {
-	    		case DISCONNECTED: OLED_STM32_updateMain_DISCONNECTEDView();
-	    		break;
-	    		case CHARGING:
-	    			DIODE_STM32_SET_LED_GREEN_LOW();
-	    			DIODE_STM32_SET_LED_RED_LOW();
-	    			DIODE_STM32_SET_LED_BLUE_High();
-	    			OLED_STM32_updateMain_CHARGINGView();
-	    		break;
-	    		case FAULT:
-	    			DIODE_STM32_SET_LED_GREEN_LOW();
-	    			DIODE_STM32_SET_LED_BLUE_LOW();
-	    			DIODE_STM32_SET_LED_RED_High();
-	    			OOLED_STM32_updateMain_FAULTView();
-	    		break;
-	    	}
-}
-
-// This function is drawing each 8px tall character glyph into the array of the OLED buffer.
-// The OLED buffer needs to be sent when drawing is completed by another call.
+/**
+ * @brief Draws a monospace character in the OLED display buffer.
+ *
+ * This function draws an 8x8 pixel character glyph at the specified position in the display buffer.
+ * The buffer must be sent to the OLED display using another function after all drawing operations are complete.
+ *
+ * @param xPosOffset The horizontal position offset in pixels.
+ * @param yPosOffset The vertical position offset in pixels.
+ * @param myChar The character to draw.
+ */
 void OLED_STM32_drawMonospaceCharacter(uint8_t xPosOffset, uint8_t yPosOffset, uint8_t myChar) {
-
+	// Iterate over each pixel row (8 rows for an 8x8 character glyph)
 	for (int yPos = 0; yPos < 8; yPos++) {
+		// Iterate over each pixel column (8 columns for an 8x8 character glyph)
 		for (int xPos = 0; xPos < 8; xPos++) {
+			// Extract the pixel value from the font array and check if it should be drawn
 			uint8_t myValue = (monospaceFont[OLED_STM32_getMonospaceGlyphIndex(myChar)][yPos] & (1<<xPos)) / (pow(2, xPos));
-			if (myValue == 1) { OLED_STM32_drawPixel(xPos + xPosOffset, yPos + yPosOffset); }
+			if (myValue == 1) {
+				OLED_STM32_drawPixel(xPos + xPosOffset, yPos + yPosOffset);
+			}
 		}
 	}
-
 }
 
-
-// This function takes the given string, checks for non-'\n' characters and advances the x-Position by the width of the glyph.
-// When the full string is drawn, the updated OLED buffer is sent to the device.
+/**
+ * @brief Draws a string of monospace characters in the OLED display buffer.
+ *
+ * This function draws a string of characters at the specified position in the display buffer.
+ * The buffer must be sent to the OLED display using another function after all drawing operations are complete.
+ *
+ * @param xPos The starting horizontal position in pixels.
+ * @param yPos The starting vertical position in pixels.
+ * @param myString The string to draw.
+ */
 void OLED_STM32_drawMonospaceString(uint8_t xPos, uint8_t yPos, const char* myString) {
 
+	uint8_t currentPosX = xPos;  // Track the current X position for the next character
+
+	// Iterate over each character in the string
 	int counter = 0;
-	uint8_t currentPosX = xPos;
-	while (myString[counter] != 0) {
+	while (myString[counter] != '\0') {
+		// Draw the character at the current position
 		OLED_STM32_drawMonospaceCharacter(currentPosX, yPos, myString[counter]);
+
+        // Advance the X position by the width of the character
 		currentPosX += monospaceFontWidth[OLED_STM32_getMonospaceGlyphIndex(myString[counter])];
 		counter++;
 	}
 }
 
-// This is a helper function to calcualte the correct font glyph index for any given character
+/**
+ * @brief Calculates the glyph index for a given character in the monospace font.
+ *
+ * This function maps characters to their corresponding glyph index in the monospace font.
+ * It handles special cases for certain characters and returns the appropriate index.
+ *
+ * @param charIndex The ASCII value of the character.
+ * @return The glyph index corresponding to the character.
+ */
 uint8_t OLED_STM32_getMonospaceGlyphIndex(uint8_t charIndex) {
-
-	switch (charIndex) {
-		case 0xC4: return 95;
-		case 0xE4: return 96;
-		case 0xD6: return 97;
-		case 0xF6: return 98;
-		case 0xDC: return 99;
-		case 0xFC: return 100;
-		case 0xDF: return 101;
-		case 0xF8: return 102;
-		default: return charIndex - 32;
-	}
-
+    // Map special characters to specific font indices
+    switch (charIndex) {
+        case 0xC4: return 95;  // Ä
+        case 0xE4: return 96;  // ä
+        case 0xD6: return 97;  // Ö
+        case 0xF6: return 98;  // ö
+        case 0xDC: return 99;  // Ü
+        case 0xFC: return 100; // ü
+        case 0xDF: return 101; // ß
+        case 0xF8: return 102; // ø
+        default: return charIndex - 32; // Default character mapping (ASCII offset)
+    }
 }
 
-// This function can currently only draw vertical or horizontal lines. No diagonal lines.
+/**
+ * @brief Draws a line on the OLED display.
+ *
+ * This function draws a vertical or horizontal line between two points on the OLED display.
+ * It does not support diagonal lines.
+ *
+ * @param xStart The x-coordinate of the start point.
+ * @param yStart The y-coordinate of the start point.
+ * @param xEnd The x-coordinate of the end point.
+ * @param yEnd The y-coordinate of the end point.
+ */
 void OLED_STM32_drawLine(uint8_t xStart, uint8_t yStart, uint8_t xEnd, uint8_t yEnd) {
-
-	// Do something to create a line. Diagonal is tricky.
-	for (int x = 0; x <= (xEnd - xStart); x++) {
-		for (int y = 0; y <= (yEnd - yStart); y++) {
-			OLED_STM32_drawPixel(xStart + x, yStart + y);
-		}
+	// Ensure that the line is either vertical or horizontal
+	    if (xStart == xEnd) {
+	        // Vertical line
+	        for (int y = yStart; y <= yEnd; y++) {
+	            OLED_STM32_drawPixel(xStart, y);
+	        }
+	    } else if (yStart == yEnd) {
+	        // Horizontal line
+	        for (int x = xStart; x <= xEnd; x++) {
+	            OLED_STM32_drawPixel(x, yStart);
+	        }
+	    }
+	    // No action for diagonal lines
 	}
 
-}
-
-
-// This function is drawing a larger font glyph into the array of the OLED buffer.
-// This can only be used for characters 0-9, ' ' and 'A'.
-// The OLED buffer needs to be sent when drawing is completed by another call.
-void OLED_STM32_drawLargeCharacter(uint8_t xPosOffset, uint8_t yPosOffset, uint8_t myChar) {
-
-	uint8_t glyphWidth = latoGlyphWidth[OLED_STM32_getLargeGlyphIndex(myChar)];
-    const uint8_t *imageBits = latoFontBits[OLED_STM32_getLargeGlyphIndex(myChar)];
-	uint8_t correctionFactor = 0;
-	if (latoFontWidth % 8 > 0) { correctionFactor = 1; }
-	for (int yPos = 0; yPos < latoFontHeight; yPos++) {
-		for (int xPos = 0; xPos < glyphWidth; xPos++) {
-			uint16_t currentBit = xPos / 8 + (yPos * (latoFontWidth / 8 + correctionFactor));
-			uint8_t currentBitMask = 1 << xPos % 8;
-			uint8_t myValue = (imageBits[currentBit] & currentBitMask) / currentBitMask;
-			if (myValue) { OLED_STM32_drawPixel(xPos + xPosOffset + latoGlyphOffset[OLED_STM32_getLargeGlyphIndex(myChar)], yPos + yPosOffset); }
-		}
-	}
-
-}
-
-
-// This function takes the given string, checks for non-'\n' characters and advances the x-Position by the width of the glyph.
-// When the full string is drawn, the updated OLED buffer is sent to the device.
-void OLED_STM32_drawLargeString(uint8_t xPos, uint8_t yPos, const char* myString) {
-
-	int counter = 0;
-	uint8_t currentPosX = xPos;
-	while (myString[counter] != 0) {
-		OLED_STM32_drawLargeCharacter(currentPosX, yPos, myString[counter]);
-		currentPosX += latoGlyphWidth[OLED_STM32_getLargeGlyphIndex(myString[counter])] + latoGlyphOffset[OLED_STM32_getLargeGlyphIndex(myString[counter])];
-		counter++;
-	}
-
-}
-
-// This is a helper function to calculate the correct font glyph index for 0-9, ' ' and 'A'
-uint8_t OLED_STM32_getLargeGlyphIndex(uint8_t charIndex) {
-
-	switch (charIndex) {
-        case 32: return 0;
-		case 65: return 11;
-		default: return charIndex - 47;
-	}
-}
-
-void OLED_STM32_updateMain_DISCONNECTEDView()
-{
-	// Basic Layout Setup
-	get_time() ;
-	get_date();
-	OLED_STM32_clearDisplay();
-	OLED_STM32_drawLine(0,9,127,9);
-	OLED_STM32_drawLine(0,53,127,53);
-	OLED_STM32_drawMonospaceString(0,0,Time);
-	OLED_STM32_drawMonospaceString(86,0,date);
-
-	// Temperature View
-	char maxTempStr[6] = "     ";
-	int8_t currentTemp = HELPER_STM32_getCurrentTemp();
-	uint8_t offsetValue = 0;
-	// Check if temperature is negative
-	if ( currentTemp < 0) {
-		maxTempStr[0] = 0x2D; // -
-		offsetValue = 1;
-		currentTemp = currentTemp * -1;
-	}
-	// check if temperature is double digit
-	if ((currentTemp > 9) | (currentTemp < -9)) {
-		maxTempStr[0+offsetValue] = currentTemp / 10 + 48;
-		maxTempStr[1+offsetValue] = currentTemp % 10 + 48;
-		offsetValue++;
-	} else {
-		maxTempStr[0+offsetValue] = currentTemp + 48;
-	}
-	// Add the degree symbols
-	maxTempStr[1+offsetValue] = 0xF8; // °
-	maxTempStr[2+offsetValue] = 0x43; // C
-	maxTempStr[3+offsetValue] ='\0'; // Assurez-vous que la chaîne est terminée;
-	int len_maxTempStr=strlen(maxTempStr)*6 - 2;
-	for(int Tpos1 = 0; Tpos1 < 6; Tpos1++)
-	{
-		if(maxTempStr[Tpos1]=="1")
-		{
-			 len_maxTempStr -= 2;
-		}
-	}
-	 // Draw temperature above the top line and centered
-	 OLED_STM32_drawMonospaceString(64-(len_maxTempStr/2), 0, maxTempStr);
-	 OLED_STM32_drawMonospaceString(12, 32, "Veuillez connecter");
-	 OLED_STM32_drawMonospaceString(21, 33, "votre chargeur");
-     OLED_STM32_updateDisplay();
-
-}
-
-void OLED_STM32_updateMain_CHARGINGView()
-{
-
-	get_time() ;
-	get_date();
-	// Basic Layout Setup
-		OLED_STM32_clearDisplay();
-		OLED_STM32_drawLine(0,9,127,9);
-		OLED_STM32_drawLine(0,53,127,53);
-		OLED_STM32_drawMonospaceString(0,0,Time);
-		OLED_STM32_drawMonospaceString(86,0,date);
-
-		// Temperature View
-		char maxTempStr[6] = "     ";
-		int8_t currentTemp = HELPER_STM32_getCurrentTemp();
-		uint8_t offsetValue = 0;
-		// Check if temperature is negative
-		if ( currentTemp < 0) {
-			maxTempStr[0] = 0x2D; // -
-			offsetValue = 1;
-			currentTemp = currentTemp * -1;
-		}
-		// check if temperature is double digit
-		if ((currentTemp > 9) | (currentTemp < -9)) {
-			maxTempStr[0+offsetValue] = currentTemp / 10 + 48;
-			maxTempStr[1+offsetValue] = currentTemp % 10 + 48;
-			offsetValue++;
-		} else {
-			maxTempStr[0+offsetValue] = currentTemp + 48;
-		}
-		// Add the degree symbols
-		maxTempStr[1+offsetValue] = 0xF8; // °
-		maxTempStr[2+offsetValue] = 0x43; // C
-		maxTempStr[3+offsetValue] ='\0'; // Assurez-vous que la chaîne est terminée;
-		int len_maxTempStr=strlen(maxTempStr)*6 - 2;
-		for(int Tpos1 = 0; Tpos1 < 6; Tpos1++)
-		{
-			if(maxTempStr[Tpos1]=="1")
-			{
-				 len_maxTempStr -= 2;
-			}
-		}
-		 // Draw temperature above the top line and centered
-		 OLED_STM32_drawMonospaceString(64-(len_maxTempStr/2), 0, maxTempStr);
-
-		//  current Ampere View
-		char currentAmpStr[3] = "  ";
-		uint8_t AmpoffsetValue = 0;
-		if (HELPER_STM32_getCurrentAmpere() < 10) {
-			currentAmpStr[0] = HELPER_STM32_getCurrentAmpere() + 48;
-		} else {
-			currentAmpStr[0] = HELPER_STM32_getCurrentAmpere() / 10 + 48;
-			currentAmpStr[1] = HELPER_STM32_getCurrentAmpere() % 10 + 48;
-			AmpoffsetValue++;
-		}
-		// Add the Ampere symbols
-		currentAmpStr[1+AmpoffsetValue] = 0x41; // A
-		// Draw current in the bottom left
-		OLED_STM32_drawMonospaceString(0, 54, currentAmpStr);
-
-	 //  current Voltage View
-		 char currentVoltgStr[5] = "  ";
-		 uint8_t VoltoffsetValue = 0;
-		 if (HELPER_STM32_getCurrentVoltage() < 10) {
-			 currentVoltgStr[0] = HELPER_STM32_getCurrentVoltage() + 48;
-		   }
-		  else {
-		  if (HELPER_STM32_getCurrentVoltage < 100) {
-			  currentVoltgStr[0] = HELPER_STM32_getCurrentVoltage/ 10 + 48;
-			  currentVoltgStr[1] = HELPER_STM32_getCurrentVoltage % 10 + 48;
-			  VoltoffsetValue++;
-		    	 } else {
-		     currentVoltgStr[0] = HELPER_STM32_getCurrentVoltage / 100 + 48;
-		     currentVoltgStr[1] = (HELPER_STM32_getCurrentVoltage / 10) % 10 + 48;
-		     currentVoltgStr[2] = HELPER_STM32_getCurrentVoltage% 10 + 48;
-		     VoltoffsetValue +=2;
-		    	 }
-		    	}
-		 currentVoltgStr[1+VoltoffsetValue]=0x56; //V
-		 currentVoltgStr[2+VoltoffsetValue]='\0';
-
-		   int len_currentVoltgStr = strlen(currentVoltgStr) * 6;
-
-		   for(int Vpos1 = 0; Vpos1 < 5; Vpos1++)
-		   	{
-		   		if(currentVoltgStr[Vpos1]=="1")
-		   		{
-		   			len_currentVoltgStr -= 2;
-		   		}
-		   	}
-	// Draw voltage in the bottom
-		   OLED_STM32_drawMonospaceString(128-len_currentVoltgStr, 54, currentVoltgStr);
-
-	//  current Power View
-
-		    char currentPowerStr[6] = "    "; // Espace réservé pour quatre chiffres et un caractère 'V'
-		    uint8_t PowoffsetValue = 0;
-
-		    if (HELPER_STM32_getCurrentPower < 10) {
-		    	currentPowerStr[0] = HELPER_STM32_getCurrentPower + 48;
-		    } else if (cHELPER_STM32_getCurrentPower < 100) {
-		    	currentPowerStr[0] = HELPER_STM32_getCurrentPower / 10 + 48;
-		    	currentPowerStr[1] = HELPER_STM32_getCurrentPower % 10 + 48;
-		    	PowoffsetValue++;
-		    } else if (currentPow < 1000) {
-		    	currentPowerStr[0] = HELPER_STM32_getCurrentPower / 100 + 48;
-		    	currentPowerStr[1] = (HELPER_STM32_getCurrentPower / 10) % 10 + 48;
-		        currentVoltgStr[2] = HELPER_STM32_getCurrentPower % 10 + 48;
-		        PowoffsetValue += 2;
-		    } else {
-		    	currentPowerStr[0] = HELPER_STM32_getCurrentPower / 1000 + 48;
-		    	currentPowerStr[1] = (HELPER_STM32_getCurrentPower / 100) % 10 + 48;
-		    	currentPowerStr[2] = (HELPER_STM32_getCurrentPower / 10) % 10 + 48;
-		    	currentPowerStr[3] = HELPER_STM32_getCurrentPower % 10 + 48;
-		    	PowoffsetValue += 3;
-		    }
-
-		    currentPowerStr[1+PowoffsetValue] =0x57 ; // Ajout de 'W' après les chiffres
-		    currentPowerStr[2+PowoffsetValue] = '\0'; // Terminaison de la chaîne
-
-		    int len_currentPowerStr = strlen(currentPowerStr) * 6;
-
-		    for (int POWpos1 = 0; POWpos1 < 6; POWpos1++) {
-		        if (currentPowerStr[POWpos1] == '1') {
-		            len_currentPowerStr -= 2;
-		        }
-		    }
-		    // Draw power in the bottom center//
-		    OLED_STM32_drawMonospaceString(64-(len_currentVoltgStr/2), 54, currentPowerStr);
-
-		    OLED_STM32_drawMonospaceString(38,32,"En Charge");
-	        OLED_STM32_updateDisplay();
-
-}
-
-void OLED_STM32_updateMain_FAULTView()
-{
-	// Basic Layout Setup
-		get_time() ;
-		get_date();
-		OLED_STM32_clearDisplay();
-		OLED_STM32_drawLine(0,9,127,9);
-		OLED_STM32_drawLine(0,53,127,53);
-		OLED_STM32_drawMonospaceString(0,0,Time);
-		OLED_STM32_drawMonospaceString(86,0,date);
-
-		// Temperature View
-		char maxTempStr[6] = "     ";
-		int8_t currentTemp = HELPER_STM32_getCurrentTemp();
-		uint8_t offsetValue = 0;
-		// Check if temperature is negative
-		if ( currentTemp < 0) {
-			maxTempStr[0] = 0x2D; // -
-			offsetValue = 1;
-			currentTemp = currentTemp * -1;
-		}
-		// check if temperature is double digit
-		if ((currentTemp > 9) | (currentTemp < -9)) {
-			maxTempStr[0+offsetValue] = currentTemp / 10 + 48;
-			maxTempStr[1+offsetValue] = currentTemp % 10 + 48;
-			offsetValue++;
-		} else {
-			maxTempStr[0+offsetValue] = currentTemp + 48;
-		}
-		// Add the degree symbols
-		maxTempStr[1+offsetValue] = 0xF8; // °
-		maxTempStr[2+offsetValue] = 0x43; // C
-		maxTempStr[3+offsetValue] ='\0'; // Assurez-vous que la chaîne est terminée;
-		int len_maxTempStr=strlen(maxTempStr)*6 - 2;
-		for(int Tpos1 = 0; Tpos1 < 6; Tpos1++)
-		{
-			if(maxTempStr[Tpos1]=="1")
-			{
-				 len_maxTempStr -= 2;
-			}
-		}
-		 // Draw temperature above the top line and centered
-		 OLED_STM32_drawMonospaceString(64-(len_maxTempStr/2), 0, maxTempStr);
-		 OLED_STM32_drawMonospaceString(46,32,"Erreur");
-	     OLED_STM32_updateDisplay();
-}
-
+/**
+ * @brief Updates the main "Bienvenue" view on the OLED display.
+ *
+ * This function retrieves the current time and date, clears the display,
+ * draws the welcome view, and updates the display with the new content.
+ */
 void OLED_STM32_updateMain_BienvenueView()
 {
-get_time() ;
-get_date();
-OLED_STM32_clearDisplay();
-OLED_STM32_drawLine(0,9,127,9);
-OLED_STM32_drawLine(0,53,127,53);
-OLED_STM32_drawMonospaceString(0,0,Time);
-OLED_STM32_drawMonospaceString(86,0,date);
-OLED_STM32_drawMonospaceString(38,32, Bienvenue);
-OLED_STM32_updateDisplay();
+   // Retrieve the current time and date
+   get_time();
+   get_date();
+
+   // Clear the entire display
+   OLED_STM32_clearDisplay();
+
+   // Draw lines separating sections of the display
+   OLED_STM32_drawLine(0, 9, 127, 9);
+   OLED_STM32_drawLine(0, 53, 127, 53);
+
+   // Display the current time, date, and a welcome message
+   OLED_STM32_drawMonospaceString(0, 0, Time);
+   OLED_STM32_drawMonospaceString(86, 0, date);
+   OLED_STM32_drawMonospaceString(38, 32, Bienvenue);
+
+   // Update the OLED display with the new buffer content
+   OLED_STM32_updateDisplay();
 }
 
 
-/*void OLED_STM32_drawImage(uint8_t xPosOffset, uint8_t yPosOffset) {
-
-	uint8_t correctionFactor = 0;
-	if (imageWidth % 8 > 0) { correctionFactor = 1; }
-	for (int yPos = 0; yPos < imageHeight; yPos++) {
-		for (int xPos = 0; xPos < imageWidth; xPos++) {
-			uint16_t currentBit = xPos / 8 + (yPos * (imageWidth / 8 + correctionFactor));
-			uint8_t currentBitMask = 1 << xPos % 8;
-			uint8_t myValue = (imageBits[currentBit] & currentBitMask) / currentBitMask;
-			if (myValue) { OLED_STM32_drawPixel(xPos + xPosOffset, yPos + yPosOffset); }
-		}
-	}
-
-}
-*/

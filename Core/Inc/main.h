@@ -59,8 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define STM32_ADC_CHANNE_VOLTAGE_Pin GPIO_PIN_2
-#define STM32_ADC_CHANNE_VOLTAGE_GPIO_Port GPIOC
+#define STM32_SLEEP_Pin GPIO_PIN_2
+#define STM32_SLEEP_GPIO_Port GPIOC
 #define OLED_DC_PIN_Pin GPIO_PIN_0
 #define OLED_DC_PIN_GPIO_Port GPIOA
 #define OLED_SCK_PIN_Pin GPIO_PIN_1
