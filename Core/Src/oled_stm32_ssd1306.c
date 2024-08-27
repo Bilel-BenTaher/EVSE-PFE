@@ -60,20 +60,16 @@ void OLED_STM32_initDisplay(void) {
 void OLED_STM32_sendBuffer(uint8_t *buffer, uint8_t bufferType, uint16_t numberOfElements) {
     // Set DC pin based on buffer type
     if (bufferType == OLED_SPI_DATA) {
-        OLED_STM32_digitalWrite(OLED_DC_PIN_Pin, GPIO_PIN_SET);
+        OLED_STM32_digitalWrite(OLED_DC_PIN_Pin, GPIO_PIN_SET); //The data sent is graphic content (data).
     } else {
-        OLED_STM32_digitalWrite(OLED_DC_PIN_Pin, GPIO_PIN_RESET);
+        OLED_STM32_digitalWrite(OLED_DC_PIN_Pin, GPIO_PIN_RESET); //The data sent are commands.
     }
 
-    // Transmit buffer over SPI
-    for (uint16_t i = 0; i < numberOfElements; i++) {
-        HAL_SPI_Transmit(&hspi1, &buffer[i], 1, HAL_MAX_DELAY);
-        // Wait until transmission is complete
-        while (__HAL_SPI_GET_FLAG(&hspi1, SPI_FLAG_TXE) == RESET);
-    }
+    // Transmit buffer over SPI using DMA
+    HAL_SPI_Transmit_DMA(&hspi1, buffer, numberOfElements);
 
-    // Wait until SPI is not busy anymore
-    while (__HAL_SPI_GET_FLAG(&hspi1, SPI_FLAG_BSY) != RESET);
+    // Wait for the DMA transmission to complete
+    while (HAL_SPI_GetState(&hspi1) != HAL_SPI_STATE_READY);
 
     // Reset DC pin after command transmission
     if (bufferType == OLED_SPI_COMMAND) {

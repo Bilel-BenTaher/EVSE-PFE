@@ -38,30 +38,39 @@ float DS1621_getTemperature(I2C_HandleTypeDef *hi2c) {
         Error_Handler();  // Handle the error if the device is not ready
     }
 
-    // Start the temperature conversion process
-    if (HAL_I2C_Master_Transmit(hi2c, DS1621_I2C_ADDRESS, &cmd_start, 1, HAL_MAX_DELAY) != HAL_OK) {
+    // Start the temperature conversion process using DMA for I2C_TX
+    if (HAL_I2C_Master_Transmit_DMA(hi2c, DS1621_I2C_ADDRESS, &cmd_start, 1) != HAL_OK) {
         Error_Handler();  // Handle transmission error
     }
+
+    // Wait for the transmission to complete
+    while (HAL_I2C_GetState(hi2c) != HAL_I2C_STATE_READY);
 
     HAL_Delay(1000);  // Wait 1 second for the conversion to complete
 
-    // Request the temperature data from the DS1621
-    if (HAL_I2C_Master_Transmit(hi2c, DS1621_I2C_ADDRESS, &cmd_read, 1, HAL_MAX_DELAY) != HAL_OK) {
+    // Request the temperature data from the DS1621 using DMA for I2C_TX
+    if (HAL_I2C_Master_Transmit_DMA(hi2c, DS1621_I2C_ADDRESS, &cmd_read, 1) != HAL_OK) {
         Error_Handler();  // Handle transmission error
     }
 
-    // Receive the temperature data (2 bytes)
-    if (HAL_I2C_Master_Receive(hi2c, DS1621_I2C_ADDRESS, buf, 2, HAL_MAX_DELAY) != HAL_OK) {
+    // Wait for the transmission to complete
+    while (HAL_I2C_GetState(hi2c) != HAL_I2C_STATE_READY);
+
+    // Receive the temperature data (2 bytes) using DMA for I2C_RX
+    if (HAL_I2C_Master_Receive_DMA(hi2c, DS1621_I2C_ADDRESS, buf, 2) != HAL_OK) {
         Error_Handler();  // Handle reception error
     }
+
+    // Wait for the reception to complete
+    while (HAL_I2C_GetState(hi2c) != HAL_I2C_STATE_READY);
 
     // Combine the two received bytes to form the temperature value (12-bit resolution)
     val = ((int16_t)buf[0] << 8) | (buf[1] & 0xF0);  // Mask lower nibble of buf[1]
 
     // Handle negative temperatures
     if (val & 0x0800) {  // Check if the sign bit (bit 11) is set
-            val |= 0xF000;  // Extend the sign to 16 bits
-            val = -((~val + 1) & 0x0FFF);  // Two's complement conversion to negative value
+        val |= 0xF000;  // Extend the sign to 16 bits
+        val = -((~val + 1) & 0x0FFF);  // Two's complement conversion to negative value
     }
 
     // Convert to Celsius, considering the sensor resolution (0.0625°C per bit)

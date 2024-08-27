@@ -46,10 +46,13 @@ ADC_HandleTypeDef hadc4;
 DMA_HandleTypeDef handle_LPDMA1_Channel0;
 
 I2C_HandleTypeDef hi2c1;
+DMA_HandleTypeDef handle_GPDMA1_Channel2;
+DMA_HandleTypeDef handle_GPDMA1_Channel1;
 
 RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi1;
+DMA_HandleTypeDef handle_GPDMA1_Channel0;
 
 TIM_HandleTypeDef htim16;
 
@@ -63,13 +66,13 @@ void MX_FREERTOS_Init(void);
 static void MX_GPIO_Init(void);
 static void MX_LPDMA1_Init(void);
 static void MX_GPDMA1_Init(void);
-static void MX_RTC_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_MEMORYMAP_Init(void);
 static void MX_ADC4_Init(void);
 static void MX_SPI1_Init(void);
-static void MX_TIM16_Init(void);
+static void MX_RTC_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_TIM16_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -109,13 +112,13 @@ int main(void)
   MX_GPIO_Init();
   MX_LPDMA1_Init();
   MX_GPDMA1_Init();
-  MX_RTC_Init();
   MX_I2C1_Init();
   MX_MEMORYMAP_Init();
   MX_ADC4_Init();
   MX_SPI1_Init();
-  MX_TIM16_Init();
+  MX_RTC_Init();
   MX_ADC1_Init();
+  MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
   /* USER CODE END 2 */
 
@@ -378,6 +381,8 @@ static void MX_GPDMA1_Init(void)
     HAL_NVIC_EnableIRQ(GPDMA1_Channel0_IRQn);
     HAL_NVIC_SetPriority(GPDMA1_Channel1_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel1_IRQn);
+    HAL_NVIC_SetPriority(GPDMA1_Channel2_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel2_IRQn);
 
   /* USER CODE BEGIN GPDMA1_Init 1 */
 
@@ -585,21 +590,21 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi1.Init.CRCPolynomial = 0x7;
-  hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
   hspi1.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
-  hspi1.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
+  hspi1.Init.FifoThreshold = SPI_FIFO_THRESHOLD_02DATA;
   hspi1.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
   hspi1.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
   hspi1.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
   hspi1.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
   hspi1.Init.IOSwap = SPI_IO_SWAP_DISABLE;
   hspi1.Init.ReadyMasterManagement = SPI_RDY_MASTER_MANAGEMENT_INTERNALLY;
-  hspi1.Init.ReadyPolarity = SPI_RDY_POLARITY_HIGH;
+  hspi1.Init.ReadyPolarity = SPI_RDY_POLARITY_LOW;
   if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     Error_Handler();
@@ -700,10 +705,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOE_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, OLED_DC_PIN_Pin|OLED_RST_PIN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, OLED_DC_PIN_Pin|OLED_RST_PIN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(OLED_CS_PIN_GPIO_Port, OLED_CS_PIN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(OLED_CS_PIN_GPIO_Port, OLED_CS_PIN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, DIODE_LED_GPIO_RED_PIN_Pin|DIODE_LED_GPIO_GREEN_PIN_Pin|DIODE_LED_GPIO_YELLOW_PIN_Pin, GPIO_PIN_RESET);
@@ -714,14 +719,14 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : OLED_DC_PIN_Pin OLED_RST_PIN_Pin */
   GPIO_InitStruct.Pin = OLED_DC_PIN_Pin|OLED_RST_PIN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : OLED_CS_PIN_Pin */
   GPIO_InitStruct.Pin = OLED_CS_PIN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(OLED_CS_PIN_GPIO_Port, &GPIO_InitStruct);
 
