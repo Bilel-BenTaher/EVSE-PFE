@@ -526,7 +526,7 @@ static void MX_RTC_Init(void)
   {
     Error_Handler();
   }
-  privilegeState.rtcPrivilegeFull = RTC_PRIVILEGE_FULL_NO;
+  privilegeState.rtcPrivilegeFull = RTC_PRIVILEGE_FULL_YES;
   privilegeState.backupRegisterPrivZone = RTC_PRIVILEGE_BKUP_ZONE_NONE;
   privilegeState.backupRegisterStartZone2 = RTC_BKP_DR0;
   privilegeState.backupRegisterStartZone3 = RTC_BKP_DR0;
@@ -711,7 +711,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(OLED_CS_PIN_GPIO_Port, OLED_CS_PIN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, DIODE_LED_GPIO_RED_PIN_Pin|DIODE_LED_GPIO_GREEN_PIN_Pin|DIODE_LED_GPIO_YELLOW_PIN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, DIODE_LED_GPIO_RED_PIN_Pin|DIODE_LED_GPIO_GREEN_PIN_Pin|DIODE_LED_GPIO_BLUE_PIN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(HIGHVOLTAGE_STM32_CTCTR_PIN_GPIO_Port, HIGHVOLTAGE_STM32_CTCTR_PIN_Pin, GPIO_PIN_RESET);
@@ -720,35 +720,27 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = OLED_DC_PIN_Pin|OLED_RST_PIN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : OLED_CS_PIN_Pin */
   GPIO_InitStruct.Pin = OLED_CS_PIN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(OLED_CS_PIN_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DIODE_LED_GPIO_RED_PIN_Pin DIODE_LED_GPIO_GREEN_PIN_Pin DIODE_LED_GPIO_YELLOW_PIN_Pin */
-  GPIO_InitStruct.Pin = DIODE_LED_GPIO_RED_PIN_Pin|DIODE_LED_GPIO_GREEN_PIN_Pin|DIODE_LED_GPIO_YELLOW_PIN_Pin;
+  /*Configure GPIO pins : DIODE_LED_GPIO_RED_PIN_Pin DIODE_LED_GPIO_GREEN_PIN_Pin DIODE_LED_GPIO_BLUE_PIN_Pin */
+  GPIO_InitStruct.Pin = DIODE_LED_GPIO_RED_PIN_Pin|DIODE_LED_GPIO_GREEN_PIN_Pin|DIODE_LED_GPIO_BLUE_PIN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : USART_STM32_GPIO_TX_Pin USART_STM32_GPIO_RX_Pin */
-  GPIO_InitStruct.Pin = USART_STM32_GPIO_TX_Pin|USART_STM32_GPIO_RX_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
   /*Configure GPIO pin : HIGHVOLTAGE_STM32_CTCTR_PIN_Pin */
   GPIO_InitStruct.Pin = HIGHVOLTAGE_STM32_CTCTR_PIN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(HIGHVOLTAGE_STM32_CTCTR_PIN_GPIO_Port, &GPIO_InitStruct);
 

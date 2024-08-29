@@ -7,7 +7,7 @@
  * The DS1621 sensor provides digital temperature readings in Celsius.
  *
  * @date July 24, 2024
- * @author hp
+ * @author Bilel BENTAHER
  */
 
 #ifndef INC_DS1621_STM32_H_

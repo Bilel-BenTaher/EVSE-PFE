@@ -7,7 +7,7 @@
  * setting and retrieving values related to current, voltage, and temperature.
  *
  * @date June 25, 2024
- * @author hp
+ * @author Bilel BENTAHER
  */
 
 #ifndef HELPER_STM32_H_
@@ -19,24 +19,23 @@
 /**
  * @brief Current amperage in amperes.
  *
- * This variable holds the current amperage as a value between 0 and 255.
- * The `volatile` keyword indicates that the variable may be changed by hardware or other processes.
+ * This variable holds the current amperage .
  */
-extern volatile uint8_t currentAmpere;
+extern float currentAmpere;
 
 /**
  * @brief Current CP voltage in volts.
  *
- * This variable holds the current CP (Control Pilot) voltage as a floating-point value to accommodate fractional voltages.
+ * This variable holds the current CP (Control Pilot) voltage .
  */
-extern volatile float CurrentCPVoltage;
+extern float CurrentCPVoltage;
 
 /**
  * @brief Current temperature in degrees Celsius.
  *
- * This variable holds the current temperature as an unsigned 16-bit integer. It provides a larger range of values.
+ * This variable holds the current temperature .
  */
-extern volatile uint16_t CurrentTemp;
+extern float CurrentTemp;
 
 // Function Declarations
 /**
@@ -44,18 +43,18 @@ extern volatile uint16_t CurrentTemp;
  *
  * This function sets the value of the current amperage.
  *
- * @param newCurrentAmpere The new amperage value to be set (0-255).
+ * @param newCurrentAmpere The new amperage value to be set.
  */
-void HELPER_STM32_setCurrentAmpere(uint8_t newCurrentAmpere);
+void HELPER_STM32_setCurrentAmpere(float newCurrentAmpere);
 
 /**
  * @brief Retrieves the current amperage.
  *
  * This function gets the current amperage value.
  *
- * @return The current amperage value (0-255).
+ * @return The current amperage value.
  */
-uint8_t HELPER_STM32_getCurrentAmpere(void);
+float HELPER_STM32_getCurrentAmpere(void);
 
 /**
  * @brief Sets the current CP voltage.
@@ -82,7 +81,7 @@ float HELPER_STM32_getCurrentCPVoltage(void);
  *
  * @param newCurrentTemp The new temperature value in degrees Celsius.
  */
-void HELPER_STM32_setCurrentTemp(uint16_t newCurrentTemp);
+void HELPER_STM32_setCurrentTemp(float newCurrentTemp);
 
 /**
  * @brief Retrieves the current temperature.
@@ -91,7 +90,7 @@ void HELPER_STM32_setCurrentTemp(uint16_t newCurrentTemp);
  *
  * @return The current temperature value in degrees Celsius.
  */
-uint16_t HELPER_STM32_getCurrentTemp(void);
+float HELPER_STM32_getCurrentTemp(void);
 
 #endif /* HELPER_STM32_H_ */
 

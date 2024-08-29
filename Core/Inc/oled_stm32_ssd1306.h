@@ -2,7 +2,7 @@
  * oled_stm32_ssd1306.h
  *
  *  Created on: Jul 8, 2024
- *      Author: hp
+ *      Author: Bilel BENTAHER
  *
  *  Description:
  *  This header file provides the necessary definitions and function prototypes
@@ -144,6 +144,6 @@ void OLED_STM32_drawLine(uint8_t xStart, uint8_t yStart, uint8_t xEnd, uint8_t y
 /**
  * @brief Updates the display with a "Welcome" view.
  */
-void OLED_STM32_updateMain_BienvenueView(void);
+void OLED_STM32_updateMain_WelcomeView(void);
 
 #endif /* INC_OLED_STM32_SSD1306_H_ */

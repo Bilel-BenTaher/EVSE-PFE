@@ -6,7 +6,7 @@
  * It provides functions to retrieve the current time and date.
  *
  * @date July 22, 2024
- * @author hp
+ * @author Bilel BENTAHER
  */
 
 #ifndef INC_RTC_STM32_H_

@@ -6,7 +6,7 @@
  * handling ADC conversions, controlling PWM signals, and filtering sensor data on an STM32 microcontroller.
  *
  * @date August 15, 2024
- * @author hp
+ * @author Bilel BENTAHER
  */
 
 #include "state_management.h"
@@ -23,6 +23,14 @@ bool state_C1 = false;      /**< @brief State flag for component C1 */
 bool state_C2 = false;      /**< @brief State flag for component C2 */
 
 #define VREFINT_CAL_ADDRPTR ((uint16_t*)((uint32_t)0x0BFA07A5))  /**< @brief Address for Vrefint calibration */
+
+// Addresses for calibration values in system memory
+#define TS_CAL1_ADDR ((uint16_t*) 0x0BFA0710) // ADC value at 30°C
+#define TS_CAL2_ADDR ((uint16_t*) 0x0BFA0742) // ADC value at 110°C
+
+// Constants for the known temperatures
+#define TEMP1 (30.0f)   // T1 = 30°C
+#define TEMP2 (130.0f)  // T2 = 110°C
 
 // Global variables for the module
 static uint16_t ADC_raw[4]; /**< @brief Array to store raw ADC values (4 elements for different sensor readings) */
@@ -92,6 +100,23 @@ void CheckStateC2() {
 }
 
 /**
+ * @brief Simple low-pass filter for smoothing voltage readings.
+ *
+ * This function implements an Infinite Impulse Response (IIR) low-pass filter. It smooths the input signal
+ * by blending the current input with the previously filtered value. The coefficient `alpha` controls the
+ * "weight" given to the current input vs. the previous output, effectively controlling the smoothing factor.
+ *
+ * @param[in] input The current input value to the filter (the current voltage reading).
+ * @param[in] previous The previously filtered output value.
+ * @param[in] alpha The filter coefficient, with values between 0 and 1 (a lower value slows the filter response).
+ *
+ * @return The filtered output value.
+ */
+float lowPassFilter(float input, float previous, float alpha) {
+    return alpha * input + (1.0f - alpha) * previous;
+}
+
+/**
  * @brief Starts an ADC conversion with DMA mode on four channels.
  *
  * This function initiates an ADC conversion in DMA mode on the ADC4 peripheral.
@@ -101,9 +126,10 @@ void CheckStateC2() {
  * @note This function assumes that the `ADC_raw` buffer is correctly initialized
  *       and that DMA is properly configured for ADC4.
  */
+
 void CONTROLPILOT_STM32_startADCConversion(void) {
     // Start the ADC in DMA mode, converting 4 channels
-    HAL_ADC_Start_DMA(&hadc4, (uint32_t*)ADC_raw, 4);
+    HAL_ADC_Start_DMA(&hadc4,(uint32_t*)ADC_raw, 4);
 }
 
 /**
@@ -115,7 +141,7 @@ void CONTROLPILOT_STM32_startADCConversion(void) {
  * - Calculates the supply voltage (Vdd) using the internal reference voltage.
  * - Computes the voltage on the Control Pilot (CP) line and applies a filtering
  *   algorithm to update the voltage value in the system.
- * - Calculates the current from the current sensor, applies filtering, and updates
+ * - Calculates the current from the current sensor(ACS712-30A), applies filtering, and updates
  *   the current value in the system.
  * - Computes the temperature from the temperature sensor, applies filtering, and
  *   updates the temperature value in the system.
@@ -126,45 +152,49 @@ void CONTROLPILOT_STM32_startADCConversion(void) {
  * @param hadc Pointer to the ADC handle structure that contains the configuration
  *             information for the specified ADC.
  */
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc){
-	    // Constants and static variables for filtering and calculations
-	    static const float sensitivity = 0.66f;        // Sensitivity for the 30A current sensor model
-	    static const float alpha = 0.9f;               // High alpha value for minimal filtering effect
-	    static float previousFilteredVoltage = 12.0f;  // Initial filtered voltage value
-	    static float previousFilteredCurrent = 0.0f;   // Initial filtered current value
-	    static float previousFilteredTemp = 30.0f;     // Initial filtered temperature value
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+    // Constants and static variables for filtering and calculations
+    static const float sensitivity = 0.066f;         // Sensitivity for the 30A current sensor model in V/A
+    static const float alpha = 0.9f;                 // High alpha value for minimal filtering effect
+    static float previousFilteredVoltage = 12.0f;   // Initial filtered voltage value (in volts)
+    static float previousFilteredCurrent = 0.0f;    // Initial filtered current value (in amperes)
+    static float previousFilteredTemp = 30.0f;      // Initial filtered temperature value (in degrees Celsius)
 
-	    float rawVoltage = 0.0f;
-	    float current = 0.0f;
+    // Read the raw ADC values
+    uint16_t rawADC_CP = ADC_raw[0];   // Raw ADC value for Control Pilot voltage
+    uint16_t rawVrefint = ADC_raw[1];  // Raw ADC value for Vrefint
+    uint16_t rawADC_Current = ADC_raw[2];  // Raw ADC value for current sensor
+    uint16_t rawTempSensor = ADC_raw[3];   // Raw ADC value for temperature sensor
 
-	    // Calculate the supply voltage (Vdd) using the internal reference voltage
-	    float Vrefint = (float)ADC_raw[1];  // Read internal reference voltage from ADC
-	    float Vrefint_cal_float = (float)(*VREFINT_CAL_ADDRPTR);  // Retrieve the factory calibration value
-	    float Vddfloat = 3000.0f * Vrefint_cal_float / Vrefint;   // Convert to actual Vdd value in millivolts
+    // Calculate the supply voltage (Vdd) using the internal reference voltage
+    float Vrefint_cal_float = (float)(*VREFINT_CAL_ADDRPTR);  // Retrieve the factory calibration value (in millivolts)
+    float Vddfloat = 3000.0f * Vrefint_cal_float / (float)rawVrefint;  // Convert to actual Vdd value in millivolts
 
-	    // Calculate the voltage on the Control Pilot (CP) line
-	    float ADCVoltageFloat = (float)ADC_raw[0];
-	    float cpVoltageFloat = Vddfloat * ADCVoltageFloat / 4095.0f;  // Convert ADC value to actual voltage
-	    float filteredVoltage = (alpha * cpVoltageFloat) + ((1.0f - alpha) * previousFilteredVoltage);  // Apply filtering
-	    previousFilteredVoltage = filteredVoltage;  // Update the previous filtered voltage value
-	    HELPER_STM32_setCurrentCPVoltage(filteredVoltage);  // Update the CP voltage in the system
+    // Calculate the voltage on the Control Pilot (CP) line
+    float cpVoltageFloat_mv = Vddfloat * (float)rawADC_CP / 4095.0f;  // Convert ADC value to actual CP voltage in millivolts
+    float cpVoltageFloat_v = cpVoltageFloat_mv / 1000.0f;  // Convert millivolts to volts
+    float filteredVoltage = lowPassFilter(cpVoltageFloat_v, previousFilteredVoltage, alpha);  // Apply filtering
+    previousFilteredVoltage = filteredVoltage;  // Update the previous filtered voltage value
+    HELPER_STM32_setCurrentCPVoltage(filteredVoltage);  // Update the CP voltage in the system
 
-	    // Calculate the current from the current sensor
-	    rawVoltage = ((float)ADC_raw[2] * Vddfloat / 4095.0f) * 1.035f;  // Convert ADC value to voltage
-	    current = (rawVoltage - 2.5f) / sensitivity;  // Calculate the current based on sensor sensitivity
-	    float filteredCurrent = (alpha * current) + ((1.0f - alpha) * previousFilteredCurrent);  // Apply filtering
-	    previousFilteredCurrent = filteredCurrent;  // Update the previous filtered current value
-	    HELPER_STM32_setCurrentAmpere(filteredCurrent);  // Update the current in the system
+    // Calculate the current from the current sensor
+    float currentVoltage_mv = (Vddfloat * (float)rawADC_Current *2/ 4095.0f)*1.035f;  // Convert ADC value to actual voltage in millivolts
+    float currentVoltage_v = currentVoltage_mv / 1000.0f;  // Convert millivolts to volts
+    float current = (currentVoltage_v - 2.5f) / sensitivity;  // Calculate the current based on sensor sensitivity
+    float filteredCurrent = lowPassFilter(current, previousFilteredCurrent, alpha);  // Apply filtering
+    previousFilteredCurrent = filteredCurrent;  // Update the previous filtered current value
+    HELPER_STM32_setCurrentAmpere(filteredCurrent);  // Update the current in the system
 
-	    // Calculate the temperature from the temperature sensor
-	    float Temprefint = (float)ADC_raw[3];
-	    float TEMP = Vddfloat * Temprefint / 4095.0f;  // Convert ADC value to temperature
-	    float filteredTemp = (alpha * TEMP) + ((1.0f - alpha) * previousFilteredTemp);  // Apply filtering
-	    previousFilteredTemp = filteredTemp;  // Update the previous filtered temperature value
-	    HELPER_STM32_setCurrentTemp(filteredTemp);  // Update the temperature in the system
+    // Calculate the temperature from the temperature sensor
+    float Temp_ADC_mv = Vddfloat * (float)rawTempSensor / 4095.0f;  // Convert ADC value to temperature in millivolts
+    float Temp_ADC_v = Temp_ADC_mv / 1000.0f;  // Convert millivolts to volts
+    float currentTemperature = ((Temp_ADC_v - (float)TS_CAL1_ADDR) * (TEMP2 - TEMP1) / ((float)TS_CAL2_ADDR - (float)TS_CAL1_ADDR)) + TEMP1; // Calculate the temperature using linear interpolation
+    float filteredTemp = lowPassFilter(currentTemperature, previousFilteredTemp, alpha);  // Apply filtering
+    previousFilteredTemp = filteredTemp;  // Update the previous filtered temperature value
+    HELPER_STM32_setCurrentTemp(filteredTemp);  // Update the temperature in the system
 
-	    // Stop ADC and DMA after conversion
-	    HAL_ADC_Stop_DMA(hadc);
+    // Stop ADC and DMA after conversion
+    HAL_ADC_Stop_DMA(&hadc4);
 }
 
 /**
@@ -196,12 +226,6 @@ void SetPWMDutyCycle(TIM_HandleTypeDef *htim, uint32_t Channel, float dutyCycle)
         // Handle error if configuration fails
         Error_Handler();
     }
-
-    // Restart the PWM to apply the new settings
-    if (HAL_TIM_PWM_Start(htim, Channel) != HAL_OK) {
-        // Handle error if the start operation fails
-        Error_Handler();
-    }
 }
 
 /**
@@ -221,12 +245,6 @@ void SetPWMDutyCycle(TIM_HandleTypeDef *htim, uint32_t Channel, float dutyCycle)
  */
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc)
 {
-    // Check if the Analog Watchdog flag is set for the specified ADC instance
-    if (__HAL_ADC_GET_FLAG(&hadc1, ADC_FLAG_AWD))
-    {
-        // Clear the Analog Watchdog flag to reset the interrupt status
-        __HAL_ADC_CLEAR_FLAG(&hadc1, ADC_FLAG_AWD);
-    }
 }
 
 

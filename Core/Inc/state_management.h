@@ -6,8 +6,7 @@
  * and GPIO pin control. It provides function declarations for checking system states and managing hardware components.
  *
  * @date August 15, 2024
- * @author hp
- */
+ * @author Bilel BENTAHER */
 
 #ifndef INC_STATE_MANAGEMENT_H_
 #define INC_STATE_MANAGEMENT_H_
@@ -29,14 +28,14 @@ extern bool state_C2;     /**< @brief Represents the operational state of compon
 // These macros are used to toggle GPIO pins to control hardware components
 
 /**
- * @brief Activates the high-voltage contactor.
+ * @brief Activates the contactor.
  *
  * This macro sets the appropriate GPIO pin to enable the high-voltage contactor.
  */
 #define HIGHVOLTAGE_STM32_contactorOn()   HAL_GPIO_WritePin(HIGHVOLTAGE_STM32_CTCTR_PIN_GPIO_Port, HIGHVOLTAGE_STM32_CTCTR_PIN_Pin, GPIO_PIN_SET)
 
 /**
- * @brief Deactivates the high-voltage contactor.
+ * @brief Deactivates the contactor.
  *
  * This macro resets the appropriate GPIO pin to disable the high-voltage contactor.
  */
@@ -88,6 +87,21 @@ void CheckStateC1(void);
 void CheckStateC2(void);
 
 /**
+ * @brief Applies a low-pass filter to smooth the input signal.
+ *
+ * This function uses a simple low-pass filter formula to smoothen out the input signal.
+ * It is useful for eliminating high-frequency noise in the voltage readings.
+ *
+ * @param[in] input The current input value to the filter.
+ * @param[in] previous The previous filtered value.
+ * @param[in] alpha The smoothing factor, which determines how much influence the previous value has.
+ *                  (Typical values are between 0 and 1, where a smaller value makes the filter slower.)
+ *
+ * @return The filtered value.
+ */
+float lowPassFilter(float input, float previous, float alpha);
+
+/**
  * @brief Starts an ADC conversion with DMA mode on four channels.
  *
  * This function initiates an ADC conversion in DMA mode on the ADC4 peripheral.
@@ -106,8 +120,7 @@ void CONTROLPILOT_STM32_startADCConversion(void);
  * @param Channel Specifies the TIM channel.
  * @param dutyCycle A float value between 0 and 100 representing the percentage of the PWM duty cycle.
  *
- * This function configures the PWM signal for the specified timer and channel, allowing control over the signal's
- * duty cycle, which is essential for controlling motors, LEDs, or other PWM-driven devices.
+ * This function configures the PWM signal for the specified timer and channel.
  */
 void SetPWMDutyCycle(TIM_HandleTypeDef *htim, uint32_t Channel, float dutyCycle);
 

@@ -7,7 +7,7 @@
  * the corresponding GPIO pins.
  *
  * @date August 22, 2024
- * @author hp
+ * @author Bilel BENTAHER
  */
 
 #ifndef INC_DIODE_LED_H_

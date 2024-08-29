@@ -6,7 +6,7 @@
  * temperature sensor over I2C and retrieve the temperature in degrees Celsius.
  *
  * @date July 24, 2024
- * @author hp
+ * @author Bilel BENTAHER
  */
 
 #include "DS1621_stm32.h"
@@ -32,11 +32,6 @@ float DS1621_getTemperature(I2C_HandleTypeDef *hi2c) {
     uint8_t cmd_read = 0xAA;   // Command to read the temperature data
     uint8_t buf[2];            // Buffer to hold the received data (2 bytes)
     int16_t val;               // 16-bit variable to store the signed temperature value
-
-    // Ensure the DS1621 device is ready for communication
-    if (HAL_I2C_IsDeviceReady(hi2c, DS1621_I2C_ADDRESS, 2, HAL_MAX_DELAY) != HAL_OK) {
-        Error_Handler();  // Handle the error if the device is not ready
-    }
 
     // Start the temperature conversion process using DMA for I2C_TX
     if (HAL_I2C_Master_Transmit_DMA(hi2c, DS1621_I2C_ADDRESS, &cmd_start, 1) != HAL_OK) {

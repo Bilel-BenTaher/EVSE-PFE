@@ -8,7 +8,7 @@
  * of characters and strings on the display.
  *
  * @date July 8, 2024
- * @author hp
+ * @author Bilel BENTAHER
  */
 
 #include "stm32u5xx.h"
@@ -111,7 +111,7 @@ void OLED_STM32_updateDisplay(void) {
  *       call OLED_STM32_updateDisplay().
  */
 void OLED_STM32_clearDisplay(void) {
-    for (int i = 0; i < DISPLAY_BUFFER_LENGTH; i++) {
+    for (uint8_t i = 0; i < DISPLAY_BUFFER_LENGTH; i++) {
         OLED_STM32_displayBuffer[i] = 0;
     }
 }
@@ -182,9 +182,9 @@ void OLED_STM32_drawPixel(uint8_t x, uint8_t y) {
  */
 void OLED_STM32_drawMonospaceCharacter(uint8_t xPosOffset, uint8_t yPosOffset, uint8_t myChar) {
 	// Iterate over each pixel row (8 rows for an 8x8 character glyph)
-	for (int yPos = 0; yPos < 8; yPos++) {
+	for (uint8_t yPos = 0; yPos < 8; yPos++) {
 		// Iterate over each pixel column (8 columns for an 8x8 character glyph)
-		for (int xPos = 0; xPos < 8; xPos++) {
+		for (uint8_t xPos = 0; xPos < 8; xPos++) {
 			// Extract the pixel value from the font array and check if it should be drawn
 			uint8_t myValue = (monospaceFont[OLED_STM32_getMonospaceGlyphIndex(myChar)][yPos] & (1<<xPos)) / (pow(2, xPos));
 			if (myValue == 1) {
@@ -259,12 +259,12 @@ void OLED_STM32_drawLine(uint8_t xStart, uint8_t yStart, uint8_t xEnd, uint8_t y
 	// Ensure that the line is either vertical or horizontal
 	    if (xStart == xEnd) {
 	        // Vertical line
-	        for (int y = yStart; y <= yEnd; y++) {
+	        for (uint8_t y = yStart; y <= yEnd; y++) {
 	            OLED_STM32_drawPixel(xStart, y);
 	        }
 	    } else if (yStart == yEnd) {
 	        // Horizontal line
-	        for (int x = xStart; x <= xEnd; x++) {
+	        for (uint8_t x = xStart; x <= xEnd; x++) {
 	            OLED_STM32_drawPixel(x, yStart);
 	        }
 	    }
@@ -277,7 +277,7 @@ void OLED_STM32_drawLine(uint8_t xStart, uint8_t yStart, uint8_t xEnd, uint8_t y
  * This function retrieves the current time and date, clears the display,
  * draws the welcome view, and updates the display with the new content.
  */
-void OLED_STM32_updateMain_BienvenueView()
+void OLED_STM32_updateMain_WelcomeView()
 {
    // Retrieve the current time and date
    get_time();

@@ -7,7 +7,7 @@
  * It includes the font data and width information for each character in the font set.
  *
  *  Created on: Aug 22, 2024
- *      Author: hp
+ *      Author: Bilel BENTAHER
  */
 // Monospace 8x8 Font Definition
 

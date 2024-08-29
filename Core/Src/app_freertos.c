@@ -240,7 +240,7 @@ void CONTROLPILOT_STM32_HandleA1(void *argument)
 		    	 HAL_SuspendTick();
 
 		    	 // Configure the power settings for Stop 1 mode
-		    	 HAL_PWR_EnterSLEEPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+		    	 HAL_PWR_EnterSLEEPMode(PWR_LOWPOWERREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
 		    	 // Resume the SysTick timer
 		    	 HAL_ResumeTick();
@@ -284,7 +284,7 @@ void CONTROLPILOT_STM32_HandleA2(void *argument)
           }
           else if (HELPER_STM32_getCurrentCPVoltage() >= 11.0 && HELPER_STM32_getCurrentCPVoltage() <= 13.0)
 	      {
-        	  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,100);// The function adjusts the pulse width to 100%, resulting in a constant high output.
+        	  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);// The function adjusts the pulse width to 100%, resulting in a constant high output.
         	  notificationSentToOled = false;
 	           // Send a notification to HandleA1 task
 	           xTaskNotifyGive(Task_HandleA1Handle);
@@ -353,14 +353,19 @@ void CONTROLPILOT_STM32_HandleB2(void *argument)
 	       else if (HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
 	       {
 	          float maxCurrent = HELPER_STM32_getCurrentAmpere();
-	          float dutyCycle = maxCurrent / 0.6;
+	          float dutyCycle = maxCurrent / 60;
 	          SetPWMDutyCycle(&htim16, TIM_CHANNEL_1, dutyCycle);
+	          // Restart the PWM to apply the new settings
+	          if (HAL_TIM_PWM_Start(htim, Channel) != HAL_OK) {
+	              // Handle error if the start operation fails
+	              Error_Handler();
+	          }
 	          // Send a notification to OledHandle task
 	          xTaskNotifyGive(Task_OledHandle);
 	          vTaskDelay(pdMS_TO_TICKS(3000));
 	          if (dutyCycle < 0.8 || dutyCycle > 0.97)
 	          {
-	        	  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,100);// The function adjusts the pulse width to 100%, resulting in a constant high output.
+	        	  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);// The function adjusts the pulse width to 100%, resulting in a constant high output.
 	              // Send a notification to HandleB1 task
 	        	  xTaskNotifyGive(Task_HandleB1Handle); // Notification to HandleB1
 	          }
@@ -403,7 +408,7 @@ void CONTROLPILOT_STM32_HandleC1(void *argument)
 	     else if (HELPER_STM32_getCurrentCPVoltage() >= 5.0 && HELPER_STM32_getCurrentCPVoltage() <= 7.0)
 	     {
 	        float maxCurrent = HELPER_STM32_getCurrentAmpere();
-	        float dutyCycle = maxCurrent / 0.6;
+	        float dutyCycle = maxCurrent / 60;
 	        SetPWMDutyCycle(&htim16, TIM_CHANNEL_1, dutyCycle);
 	        if (dutyCycle > 0.8 || dutyCycle < 0.97)
 	        {
@@ -411,7 +416,7 @@ void CONTROLPILOT_STM32_HandleC1(void *argument)
 	           xTaskNotifyGive(Task_HandleC2Handle);  // Notification to HandleC2
 	        }
 	        else
-	        {  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,100);// The function adjusts the pulse width to 100%, resulting in a constant high output.
+	        {  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);// The function adjusts the pulse width to 100%, resulting in a constant high output.
 	    	   xTaskNotifyGive(Task_HandleC1Handle);  // Notification to HandleC1
 	        }
 	      }
@@ -473,7 +478,7 @@ void CONTROLPILOT_STM32_HandleC2 (void *argument)
 	    	   {
 	    		   Error_Handler();
 	    	   }
-	    	   SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,100);
+	    	   SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);
 	    	   xTaskNotifyGive(Task_HandleC1Handle); // Notification to HandleC1
 	       }
 	       else if (HELPER_STM32_getCurrentCPVoltage() >= 5.0 && HELPER_STM32_getCurrentCPVoltage() <= 7.0)
@@ -483,7 +488,7 @@ void CONTROLPILOT_STM32_HandleC2 (void *argument)
 	    		  Error_Handler();
 	          }
 	          float maxCurrent = HELPER_STM32_getCurrentAmpere();
-	          dutyCycle = maxCurrent / 0.6;
+	          dutyCycle = maxCurrent/60;
 	          SetPWMDutyCycle(&htim16, TIM_CHANNEL_1, dutyCycle);
 	          // Send a notification to OledHandle task
 	          xTaskNotifyGive(Task_OledHandle);
@@ -513,7 +518,7 @@ void CONTROLPILOT_STM32_HandleC2 (void *argument)
 	       }
 	       else if (dutyCycle < 0.8 || dutyCycle > 0.97)
 	       {
-	    	  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,100);// The function adjusts the pulse width to 100%, resulting in a constant high output.
+	    	  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);// The function adjusts the pulse width to 100%, resulting in a constant high output.
 	          vTaskDelay(pdMS_TO_TICKS(6000));
 	          if (!HIGHVOLTAGE_STM32_contactorOff())
 	          {
@@ -586,17 +591,17 @@ void CONTROLEVSE_STM32_ButtonTask(void *argument)
         {
           OLED_STM32_initDisplay();
           vTaskDelay(pdMS_TO_TICKS(50));
-          OLED_STM32_updateMain_BienvenueView();
+          OLED_STM32_updateMain_WelcomeView();
           SET_DIODE_LED_GREEN_HIGH();
           DisplayedState=true;
           vTaskDelay(pdMS_TO_TICKS(10000));
-          SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,100);// The function adjusts the pulse width to 0, resulting in a constant high output.
+          SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);// The function adjusts the pulse width to 0, resulting in a constant high output.
           // The button press is validated
           xTaskNotifyGive(Task_HandleA1Handle); // Start all state machine tasks
         }
         else if (currentButtonState == GPIO_PIN_RESET) // If the button is now released
         {
-        	SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,0);// The function adjusts the pulse width to 0, resulting in a constant low output.
+        	HAL_TIM_PWM_Stop(htim, Channel); //low output
         	OLED_DISPLAYOFF ;
         	SET_DIODE_lED_RED_LOW();
         	SET_DIODE_LED_GREEN_LOW();
@@ -655,16 +660,16 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
       else if (state_C2 && HELPER_STM32_getCurrentCPVoltage() >= 5.0 && HELPER_STM32_getCurrentCPVoltage() <= 7.0)
       {
         // Static variables to store previous sensor readings
-        static int8_t previousTemp = -128;  // Initialize with an impossible value for temperature
-        static uint8_t previousAmp = 255;   // Initialize with an impossible value for current
-        static uint16_t previousVolt = 65535; // Initialize with an impossible value for voltage
-        static uint16_t previousPower = 65535; // Initialize with an impossible value for power
+        static float previousTemp = -128;  // Initialize with an impossible value for temperature
+        static float previousAmp = 255;   // Initialize with an impossible value for current
+        static float previousVolt = 65535; // Initialize with an impossible value for voltage
+        static float previousPower = 65535; // Initialize with an impossible value for power
 
         // Get current sensor readings
-        int8_t currentTemp = HELPER_STM32_getCurrentTemp();
-        uint8_t currentAmp = HELPER_STM32_getCurrentAmpere();
-        uint16_t currentPower = currentAmp*220;
-        //uint16_t currentVolt =VoltageSensor_GetRMSVoltage();
+        float currentTemp = HELPER_STM32_getCurrentTemp();
+        float currentAmp = HELPER_STM32_getCurrentAmpere();
+        float currentVolt =220;
+        float currentPower = currentAmp*220;
 
         // Update temperature display only if it has changed
         if (currentTemp != previousTemp)
@@ -706,21 +711,10 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
         {
           previousVolt = currentVolt;
           // Convert voltage to string format
-          char voltStr[6];
+          char voltStr[5];
           snprintf(voltStr, sizeof(voltStr), "%dV", currentVolt); // Format with 'V' for volts
-
-          //calculate width in pixel
-          int len_currentVoltgStr = strlen(voltStr) * 6;
-          for(int Vpos1 = 0; Vpos1 < 5; Vpos1++)
-          {
-          	  if(voltStr[Vpos1]=="1")
-          	  {
-          	     len_currentVoltgStr -= 2;
-          	  }
-          }
-
           // Draw voltage on the OLED display, bottom right
-          OLED_STM32_drawMonospaceString(128 - (strlen(voltStr) * 6), 54, voltStr);
+          OLED_STM32_drawMonospaceString(110, 54, voltStr);
         }
 
         // Update power display only if it has changed
@@ -796,15 +790,13 @@ void CONTROLDISPLAY_STM32_RTCTask(void *argument)
       static uint8_t previousDay = 0, previousMonth = 0, previousYear = 0;
       static uint8_t previousHour = 0, previousMinute = 0;
 
-      // Buffers to store the current date and time as strings
-      char currentDate[11];  // Format: DD.MM.YY
-      char currentTime[6];   // Format: HH:MM
-
-      // --- Date Handling ---
+      // Static variables to hold current time and date values
+      static uint8_t currentDay,currentMonth,currentYear;
+	  static uint8_t currentHour,currentMinute;
 
       // Fetch the current date from the RTC
       get_date(); // Assumes this function populates the global 'date' variable
-      sscanf(date, "%02d.%02d.%2d", &currentDay, &currentMonth, &currentYear);
+      sscanf(Date, "%02d.%02d.%2d", &currentDay, &currentMonth, &currentYear);
 
       // Only update the display if the date has changed
       if (currentDay != previousDay || currentMonth != previousMonth || currentYear != previousYear)
@@ -815,7 +807,7 @@ void CONTROLDISPLAY_STM32_RTCTask(void *argument)
         previousYear = currentYear;
 
         // Display the new date on the OLED screen at coordinates (86, 0)
-        OLED_STM32_drawMonospaceString(86, 0, date);
+        OLED_STM32_drawMonospaceString(86, 0, Date);
       }
 
       // --- Time Handling ---

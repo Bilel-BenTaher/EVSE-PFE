@@ -6,7 +6,7 @@
  * It includes the font data and width information for each character in the font set.
  *
  * @date July 8, 2024
- * @author hp
+ * @author Bilel BENTAHER
  */
 
 #ifndef INC_FONT8X8_BASIC_H_
@@ -21,7 +21,7 @@
  * Each character is represented as an 8x8 pixel matrix.
  * The font set contains 103 characters.
  */
-extern const uint8_t monospaceFont[103][8];
+extern const char monospaceFont[103][8];
 
 /**
  * @brief Widths of characters in the monospace 8x8 font.

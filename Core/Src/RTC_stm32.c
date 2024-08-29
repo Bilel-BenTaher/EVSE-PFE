@@ -6,7 +6,7 @@
  * from the RTC on an STM32 microcontroller.
  *
  * @date July 22, 2024
- * @author hp
+ * @author Bilel BENTAHER
  */
 
 #include "stm32u5xx.h"
