@@ -11,7 +11,11 @@
 
 #include "state_management.h"
 #include "helper_stm32.h"
+#include "main.h"
+#include "FreeRTOS.h"
+#include "task.h"
 #include <stdlib.h>
+extern ADC_HandleTypeDef hadc4;
 
 // Global variable definitions
 // Initialize global variables with default values
@@ -64,8 +68,6 @@ void CheckStateA2() {
  */
 void CheckStateB1() {
     state_B1 = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);  // Wait for a task notification
-    // Stop the ADC conversion process
-    HAL_ADC_Stop(&hadc1);
     CONTROLPILOT_STM32_startADCConversion();             // Start ADC conversion to measure voltage
 }
 
@@ -130,6 +132,10 @@ float lowPassFilter(float input, float previous, float alpha) {
 void CONTROLPILOT_STM32_startADCConversion(void) {
     // Start the ADC in DMA mode, converting 4 channels
     HAL_ADC_Start_DMA(&hadc4,(uint32_t*)ADC_raw, 4);
+    // Wait for all conversions to complete
+    while (HAL_ADC_GetState(&hadc4) != HAL_ADC_STATE_READY) {
+    	// Nothing to do here, just wait for the ADC to finish
+       }
 }
 
 /**
@@ -159,7 +165,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     static float previousFilteredVoltage = 12.0f;   // Initial filtered voltage value (in volts)
     static float previousFilteredCurrent = 0.0f;    // Initial filtered current value (in amperes)
     static float previousFilteredTemp = 30.0f;      // Initial filtered temperature value (in degrees Celsius)
-
+    float ts_cal1 = (float)(*TS_CAL1_ADDR);
+    float ts_cal2 = (float)(*TS_CAL2_ADDR);
     // Read the raw ADC values
     uint16_t rawADC_CP = ADC_raw[0];   // Raw ADC value for Control Pilot voltage
     uint16_t rawVrefint = ADC_raw[1];  // Raw ADC value for Vrefint
@@ -188,7 +195,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     // Calculate the temperature from the temperature sensor
     float Temp_ADC_mv = Vddfloat * (float)rawTempSensor / 4095.0f;  // Convert ADC value to temperature in millivolts
     float Temp_ADC_v = Temp_ADC_mv / 1000.0f;  // Convert millivolts to volts
-    float currentTemperature = ((Temp_ADC_v - (float)TS_CAL1_ADDR) * (TEMP2 - TEMP1) / ((float)TS_CAL2_ADDR - (float)TS_CAL1_ADDR)) + TEMP1; // Calculate the temperature using linear interpolation
+    float currentTemperature = ((Temp_ADC_v - ts_cal1) * (TEMP2 - TEMP1) / (ts_cal2 - ts_cal1)) + TEMP1; // Calculate the temperature using linear interpolation
     float filteredTemp = lowPassFilter(currentTemperature, previousFilteredTemp, alpha);  // Apply filtering
     previousFilteredTemp = filteredTemp;  // Update the previous filtered temperature value
     HELPER_STM32_setCurrentTemp(filteredTemp);  // Update the temperature in the system

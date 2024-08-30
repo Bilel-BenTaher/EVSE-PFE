@@ -12,9 +12,7 @@
 
 #ifndef INC_DS1621_STM32_H_
 #define INC_DS1621_STM32_H_
-
 #include "stm32u5xx_hal.h"  // Include the STM32 HAL library for I2C communication
-
 /**
  * @brief I2C address of the DS1621 temperature sensor.
  *

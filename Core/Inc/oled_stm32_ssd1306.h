@@ -13,7 +13,7 @@
 
 #ifndef INC_OLED_STM32_SSD1306_H_
 #define INC_OLED_STM32_SSD1306_H_
-
+#include "main.h"
 // SPI Command/Date selection for OLED display
 #define OLED_SPI_COMMAND      0x00   // Command mode for SPI communication
 #define OLED_SPI_DATA         0x01   // Data mode for SPI communication

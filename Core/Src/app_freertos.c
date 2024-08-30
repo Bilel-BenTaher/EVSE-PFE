@@ -24,10 +24,15 @@
 #include "cmsis_os2.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include "state_management.h"
 #include "oled_stm32_ssd1306.h"
 #include "helper_stm32.h"
 #include "RTC_stm32.h"
 #include "Diode_led.h"
+#include "DS1621_stm32.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +52,9 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+extern ADC_HandleTypeDef hadc1;
+extern TIM_HandleTypeDef htim16;
+extern I2C_HandleTypeDef hi2c1;
 bool notificationSentToOled = false; // Variable to track if the message is already displayed
 bool enChargeDisplayed = false; // Track if "En Charge" message has been displayed
 bool DisplayedState = false;
@@ -118,7 +126,7 @@ const osThreadAttr_t Task_Oled_attributes = {
 osThreadId_t Task_RTCHandle;
 const osThreadAttr_t Task_RTC_attributes = {
   .name = "Task_RTC",
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityBelowNormal,
   .stack_size = 128 * 4
 };
 
@@ -321,6 +329,7 @@ void CONTROLPILOT_STM32_HandleB1(void *argument)
 	      }
 	      else if (HELPER_STM32_getCurrentCPVoltage() >= 11.0 && HELPER_STM32_getCurrentCPVoltage() <= 13.0)
 	      {
+	    	  notificationSentToOled = false;
 	         // Send a notification to HandleA1 task
 	         xTaskNotifyGive(Task_HandleA1Handle);  // Notification to HandleA1
 	      }
@@ -345,6 +354,9 @@ void CONTROLPILOT_STM32_HandleB2(void *argument)
 	    CheckStateB2();
 	    if (state_B2)
 	    {
+	    	float maxCurrent = HELPER_STM32_getCurrentAmpere();
+	        float dutyCycle = maxCurrent / 60;
+	        SetPWMDutyCycle(&htim16, TIM_CHANNEL_1, dutyCycle);
 	       // Check voltage to trigger state E if necessary
 	       if (HELPER_STM32_getCurrentCPVoltage() >= -1.0 && HELPER_STM32_getCurrentCPVoltage() <= 1.0)
 	       {
@@ -352,14 +364,6 @@ void CONTROLPILOT_STM32_HandleB2(void *argument)
 	       }
 	       else if (HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
 	       {
-	          float maxCurrent = HELPER_STM32_getCurrentAmpere();
-	          float dutyCycle = maxCurrent / 60;
-	          SetPWMDutyCycle(&htim16, TIM_CHANNEL_1, dutyCycle);
-	          // Restart the PWM to apply the new settings
-	          if (HAL_TIM_PWM_Start(htim, Channel) != HAL_OK) {
-	              // Handle error if the start operation fails
-	              Error_Handler();
-	          }
 	          // Send a notification to OledHandle task
 	          xTaskNotifyGive(Task_OledHandle);
 	          vTaskDelay(pdMS_TO_TICKS(3000));
@@ -423,20 +427,17 @@ void CONTROLPILOT_STM32_HandleC1(void *argument)
 	      else if (HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
 	      {
 	    	 vTaskDelay(pdMS_TO_TICKS(100));
-		     if (!HIGHVOLTAGE_STM32_contactorOff())
-		     {
-		    	 Error_Handler();
-		     }
+		     HIGHVOLTAGE_STM32_contactorOff();
+
 	         // Send a notification to HandleB1 task
 	         xTaskNotifyGive(Task_HandleB1Handle); // Notification to HandleB1
 	      }
 	      else if (HELPER_STM32_getCurrentCPVoltage() >= 11.0 && HELPER_STM32_getCurrentCPVoltage() <= 13.0)
 	      {  vTaskDelay(pdMS_TO_TICKS(100));
-    	     if (!HIGHVOLTAGE_STM32_contactorOff())
-             {
-    	    	 Error_Handler();
-    	     }
-             // Send a notification to HandleA2 task
+    	    HIGHVOLTAGE_STM32_contactorOff();
+
+    	     notificationSentToOled = false;
+             // Send a notification to HandleA1 task
              xTaskNotifyGive(Task_HandleA1Handle); // Notification to HandleA1
 	      }
 	   }
@@ -467,52 +468,43 @@ void CONTROLPILOT_STM32_HandleC2 (void *argument)
 	       {
 	    	  xTaskNotifyGive(Task_HandleEHandle); // Notification to HandleE
 	       }
-	       else if(TempRelais>85||HELPER_STM32_getCurrentTemp>85)
+	       else if(TempRelais>85||HELPER_STM32_getCurrentTemp()>85)
 	       {
 	    	   xTaskNotifyGive(Task_HandleEHandle); // Notification to HandleE
 	       }
 	       else if(HELPER_STM32_getCurrentCPVoltage() >= 2.0 && HELPER_STM32_getCurrentCPVoltage() <= 4.0)
 	       {
 	    	   vTaskDelay(pdMS_TO_TICKS(3000));
-	    	   if (!HIGHVOLTAGE_STM32_contactorOff())
-	    	   {
-	    		   Error_Handler();
-	    	   }
+	    	   HIGHVOLTAGE_STM32_contactorOff();
 	    	   SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);
 	    	   xTaskNotifyGive(Task_HandleC1Handle); // Notification to HandleC1
 	       }
 	       else if (HELPER_STM32_getCurrentCPVoltage() >= 5.0 && HELPER_STM32_getCurrentCPVoltage() <= 7.0)
 	       {
-	    	  if (!HIGHVOLTAGE_STM32_contactorOn())
-	    	  {
-	    		  Error_Handler();
-	          }
+	    	  HIGHVOLTAGE_STM32_contactorOn();
+
 	          float maxCurrent = HELPER_STM32_getCurrentAmpere();
 	          dutyCycle = maxCurrent/60;
 	          SetPWMDutyCycle(&htim16, TIM_CHANNEL_1, dutyCycle);
 	          // Send a notification to OledHandle task
 	          xTaskNotifyGive(Task_OledHandle);
-	          TempRelais=DS1621_getTemperature(hi2c1);
+	          TempRelais=DS1621_getTemperature(&hi2c1);
 	          vTaskDelay(pdMS_TO_TICKS(5000));
 	          xTaskNotifyGive(Task_HandleC2Handle); // Notification to HandleC2
 	       }
 	       else if (HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
 	       {
 	    	  vTaskDelay(pdMS_TO_TICKS(100));
-	    	  if (!HIGHVOLTAGE_STM32_contactorOff())
-	    	  {
-	    		  Error_Handler();
-	    	  }
+	    	  HIGHVOLTAGE_STM32_contactorOff();
+
 	    	  xTaskNotifyGive(Task_OledHandle);
 	          xTaskNotifyGive(Task_HandleB2Handle); // Notification to HandleB2
 	       }
 	       else if (HELPER_STM32_getCurrentCPVoltage() >= 11.0 && HELPER_STM32_getCurrentCPVoltage() <= 13.0)
 	       {
 	    	  vTaskDelay(pdMS_TO_TICKS(100));
-	    	  if (!HIGHVOLTAGE_STM32_contactorOff())
-	          {
-	    		  Error_Handler();
-	    	  }
+	    	  HIGHVOLTAGE_STM32_contactorOff();
+
 	          // Send a notification to HandleA2 task
 	          xTaskNotifyGive(Task_HandleA2Handle); // Notification to HandleA2
 	       }
@@ -520,10 +512,7 @@ void CONTROLPILOT_STM32_HandleC2 (void *argument)
 	       {
 	    	  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);// The function adjusts the pulse width to 100%, resulting in a constant high output.
 	          vTaskDelay(pdMS_TO_TICKS(6000));
-	          if (!HIGHVOLTAGE_STM32_contactorOff())
-	          {
-	        	  Error_Handler();
-	          }
+	          HIGHVOLTAGE_STM32_contactorOff();
 	          xTaskNotifyGive(Task_HandleC1Handle); // Notification to HandleC1
 	       }
 	    }
@@ -548,10 +537,7 @@ void CONTROLPILOT_STM32_HandleE(void *argument)
 	  // Wait for a maximum delay of 3 seconds to complete the operation
 	  vTaskDelay(pdMS_TO_TICKS(3000));
 	  // Open the contactor (critical process)
-      if (!HIGHVOLTAGE_STM32_contactorOff())
-      {
-    	  Error_Handler();
-      }
+      HIGHVOLTAGE_STM32_contactorOff();
       state_A1 = false;
       state_A2 = false;
       state_B1 = false;
@@ -596,14 +582,23 @@ void CONTROLEVSE_STM32_ButtonTask(void *argument)
           DisplayedState=true;
           vTaskDelay(pdMS_TO_TICKS(10000));
           SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);// The function adjusts the pulse width to 0, resulting in a constant high output.
-          // The button press is validated
+          //start the PWM to apply the new settings
+         if (HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1) != HAL_OK) {
+         // Handle error if the start operation fails
+          Error_Handler();
+         }
           xTaskNotifyGive(Task_HandleA1Handle); // Start all state machine tasks
         }
         else if (currentButtonState == GPIO_PIN_RESET) // If the button is now released
         {
-        	HAL_TIM_PWM_Stop(htim, Channel); //low output
-        	OLED_DISPLAYOFF ;
-        	SET_DIODE_lED_RED_LOW();
+        	HAL_TIM_PWM_Stop(&htim16, TIM_CHANNEL_1); //low output
+
+        	// Prepare and send the display off command to OLED
+        	uint8_t OLED_STM32_command[1]={OLED_DISPLAYOFF};
+        	OLED_STM32_sendBuffer(OLED_STM32_command,OLED_SPI_COMMAND,1) ;
+
+        	// Turn off all LED
+        	SET_DIODE_LED_RED_LOW();
         	SET_DIODE_LED_GREEN_LOW();
         	SET_DIODE_LED_BLUE_LOW();
         	DisplayedState=false;
@@ -641,10 +636,8 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
         OLED_STM32_drawMonospaceString(12, 32, "Veuillez connecter");
         OLED_STM32_drawMonospaceString(21, 33, "votre chargeur");
         OLED_STM32_updateDisplay();
-
-        // Update LED indicators
-        SET_DIODE_LED_GREEN_LOW();
-        SET_DIODE_LED_RED_HIGH();
+        SET_DIODE_LED_GREEN_HIGH();
+        SET_DIODE_LED_BLUE_LOW();
       }
       else if (state_B2 && HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
       {
@@ -654,8 +647,8 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
         OLED_STM32_updateDisplay();
 
         // Update LED indicators
-        SET_DIODE_LED_RED_LOW();
-        SET_DIODE_LED_BLUE_HIGH();
+        SET_DIODE_LED_GREEN_LOW();
+        SET_DIODE_LED_RED_HIGH();
       }
       else if (state_C2 && HELPER_STM32_getCurrentCPVoltage() >= 5.0 && HELPER_STM32_getCurrentCPVoltage() <= 7.0)
       {
@@ -677,14 +670,15 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
           previousTemp = currentTemp;
 
           char tempStr[6];
+          int tempInt = (int)currentTemp; // Convert float to integer by taking the integer part
           // Convert temperature to string format
-          snprintf(tempStr, sizeof(tempStr), "%+d°C", currentTemp); // Format with a plus sign and degree symbol
+          snprintf(tempStr, sizeof(tempStr), "%d°C", tempInt); // Format with a plus sign and degree symbol
 
           //calculate width in pixel
           int len_maxTempStr=strlen(tempStr)*6 - 2;
           for(int Tpos1 = 0; Tpos1 < 6; Tpos1++)
           {
-             if(tempStr[Tpos1]=="1")
+             if(tempStr[Tpos1]=='1')
              {
           	    len_maxTempStr -= 2;
           	 }
@@ -700,7 +694,8 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
           previousAmp = currentAmp;
           // Convert current to string format
           char ampStr[4];
-          snprintf(ampStr, sizeof(ampStr), "%dA", currentAmp); // Format with 'A' for amperes
+          int ampInt = (int)currentAmp; // Convert float to integer by taking the integer part
+          snprintf(ampStr, sizeof(ampStr), "%dA", ampInt); // Format with 'A' for amperes
 
           // Draw current on the OLED display, bottom left
           OLED_STM32_drawMonospaceString(0, 54, ampStr);
@@ -712,7 +707,8 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
           previousVolt = currentVolt;
           // Convert voltage to string format
           char voltStr[5];
-          snprintf(voltStr, sizeof(voltStr), "%dV", currentVolt); // Format with 'V' for volts
+          int voltInt = (int)currentVolt; // Convert float to integer by taking the integer part
+          snprintf(voltStr, sizeof(voltStr), "%dV", voltInt); // Format with 'V' for volts
           // Draw voltage on the OLED display, bottom right
           OLED_STM32_drawMonospaceString(110, 54, voltStr);
         }
@@ -723,7 +719,9 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
           previousPower = currentPower;
           // Convert power to string format
           char powerStr[7];
-          snprintf(powerStr, sizeof(powerStr), "%dW", currentPower); // Format with 'W' for watts
+
+          int powInt = (int)currentPower; // Convert float to integer by taking the integer part
+          snprintf(powerStr, sizeof(powerStr), "%dW", powInt); // Format with 'W' for watts
 
           //calculate width in pixel
           int len_currentPowerStr = strlen(powerStr) * 6;
@@ -756,14 +754,14 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
         OLED_STM32_drawLine(0, 9, 127, 9); // Draw horizontal lines for layout
         OLED_STM32_drawLine(0, 53, 127, 53);
         OLED_STM32_drawMonospaceString(0, 0, Time); // Display current time
-        OLED_STM32_drawMonospaceString(86, 0, date); // Display current date
+        OLED_STM32_drawMonospaceString(86, 0, Date); // Display current date
         OLED_STM32_drawMonospaceString(21, 32, "Batterie_chargee"); // Display "Battery charged" message
         vTaskDelay(pdMS_TO_TICKS(10000)); // Delay to keep the message displayed for a while
         OLED_STM32_updateDisplay(); // Update the OLED display
 
         // Update LED indicators
-        SET_DIODE_LED_BLUE_LOW();
-        SET_DIODE_LED_GREEN_HIGH();
+        SET_DIODE_LED_BLUE_HIGH();
+        SET_DIODE_LED_RED_LOW();
       }
     }
   }
@@ -787,12 +785,12 @@ void CONTROLDISPLAY_STM32_RTCTask(void *argument)
     if (DisplayedState) // Only update if display is active
     {
       // Static variables to hold previous date and time values
-      static uint8_t previousDay = 0, previousMonth = 0, previousYear = 0;
-      static uint8_t previousHour = 0, previousMinute = 0;
+      static int previousDay = 0, previousMonth = 0, previousYear = 0;
+      static int previousHour = 0, previousMinute = 0;
 
       // Static variables to hold current time and date values
-      static uint8_t currentDay,currentMonth,currentYear;
-	  static uint8_t currentHour,currentMinute;
+      static int currentDay,currentMonth,currentYear;
+	  static int currentHour,currentMinute;
 
       // Fetch the current date from the RTC
       get_date(); // Assumes this function populates the global 'date' variable

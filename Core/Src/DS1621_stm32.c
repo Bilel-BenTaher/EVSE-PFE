@@ -10,9 +10,9 @@
  */
 
 #include "DS1621_stm32.h"
+#include "main.h"
 #include <string.h>
 #include <stdio.h>
-
 /**
  * @brief Retrieves the temperature from the DS1621 sensor.
  *

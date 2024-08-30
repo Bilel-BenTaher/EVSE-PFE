@@ -11,6 +11,7 @@
 #ifndef INC_STATE_MANAGEMENT_H_
 #define INC_STATE_MANAGEMENT_H_
 
+#include "stm32u5xx_hal.h"
 #include <stdbool.h> // Standard library for boolean data type support
 #include <stdint.h>  // Standard library for fixed-width integer types
 

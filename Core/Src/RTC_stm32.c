@@ -13,8 +13,7 @@
 #include "RTC_stm32.h"
 #include <stdio.h>
 #include <string.h>
-
-
+extern RTC_HandleTypeDef hrtc;
 /**
  * @brief Retrieves the current time from the RTC and formats it as a string.
  *
@@ -22,6 +21,10 @@
  *
  * @note The RTC time is retrieved in binary format (RTC_FORMAT_BIN) and converted to a string format.
  */
+// Definition of global variables
+char Time[10] = {0};  // Definition and initialization of Time
+char Date[10] = {0};  // Definition and initialization of Date
+
 void get_time(void)
 {
     RTC_TimeTypeDef gTime;

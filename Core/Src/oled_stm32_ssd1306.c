@@ -14,10 +14,12 @@
 #include "stm32u5xx.h"
 #include "helper_stm32.h"
 #include "font8x8_basic.h"
+#include "oled_stm32_ssd1306.h"
+#include "RTC_stm32.h"
 #include <math.h>
 #include <stdlib.h>
 
-
+extern SPI_HandleTypeDef hspi1;
 // Buffer containing initialization commands for the OLED displays
 uint8_t OLED_STM32_commandBuffer[COMMAND_BUFFER_LENGTH] = {OLED_DISPLAYOFF, OLED_SETCLOCKDIV, OLED_CLOCKDIVSETTING, OLED_SETMULTIPLEX, OLED_MULTIPLEXSETTING, OLED_SETDISPLAYOFFSET, OLED_DISPLAYOFFSET, OLED_SETSTARTLINE, OLED_CHGPUMPSETTING, OLED_SETCHGPUMP, OLED_SETADDRESSMODE, OLED_HORZPAGEMODE, OLED_SEGMENTREMAP, OLED_SCANDIRECTION, OLED_SETCOMPINS, OLED_COMPINSSETTING, OLED_SETCONTRAST, OLED_CONTRASTSETTING, OLED_SETPRECHGPERIOD, OLED_PRECHGPERIOD, OLED_SETVCOMHDESELECT, OLED_VCOMHDESELECTLVL, OLED_DISABLESCROLL, OLED_FULLDISPLAYOFF, OLED_SETNORMALDISPLAY, OLED_DISPLAYON};
 
@@ -127,6 +129,7 @@ void OLED_STM32_clearArea(uint8_t x, uint8_t y, const char* myString) {
 	// Ensure the coordinates are within the display bounds
     if (x >= OLED_DISPLAY_WIDTH || y >= OLED_DISPLAY_HEIGHT) return;
 
+    int counter=0;
     uint8_t width = 0;
 	uint8_t height = 8;  // Fixed height for monospace font (assuming 8 pixels per character height)
 
@@ -283,17 +286,14 @@ void OLED_STM32_updateMain_WelcomeView()
    get_time();
    get_date();
 
-   // Clear the entire display
-   OLED_STM32_clearDisplay();
-
    // Draw lines separating sections of the display
    OLED_STM32_drawLine(0, 9, 127, 9);
    OLED_STM32_drawLine(0, 53, 127, 53);
 
    // Display the current time, date, and a welcome message
    OLED_STM32_drawMonospaceString(0, 0, Time);
-   OLED_STM32_drawMonospaceString(86, 0, date);
-   OLED_STM32_drawMonospaceString(38, 32, Bienvenue);
+   OLED_STM32_drawMonospaceString(86, 0, Date);
+   OLED_STM32_drawMonospaceString(38, 32, "Bienvenue");
 
    // Update the OLED display with the new buffer content
    OLED_STM32_updateDisplay();

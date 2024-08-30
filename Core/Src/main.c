@@ -22,7 +22,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "Diode_led.h"
+#include "oled_stm32_ssd1306.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -737,6 +738,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : USERBUTTON_GPIO_MA_PIN_Pin */
+  GPIO_InitStruct.Pin = USERBUTTON_GPIO_MA_PIN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(USERBUTTON_GPIO_MA_PIN_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : HIGHVOLTAGE_STM32_CTCTR_PIN_Pin */
   GPIO_InitStruct.Pin = HIGHVOLTAGE_STM32_CTCTR_PIN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -782,8 +789,22 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+
+  OLED_STM32_clearDisplay(); // Clear the entire display
+  OLED_STM32_drawMonospaceString(46,15,"ERREUR");// Display "erreur" message
+  OLED_STM32_drawMonospaceString(7,30,"Veuillez debrancher le");// Display "Veuillez debrancher le" message
+  OLED_STM32_drawMonospaceString(4,42,"connecteur et éteindre");// Display "Veuillez debrancher le" message
+  OLED_STM32_drawMonospaceString(34,54,"le chargeur");// Display "Veuillez debrancher le" message
+  OLED_STM32_updateDisplay(); // Update the OLED display
   while (1)
   {
+	  SET_DIODE_LED_RED_HIGH();
+	  HAL_Delay(500);  // 500 ms
+
+	  SET_DIODE_LED_RED_LOW();
+	  HAL_Delay(500);
+
+	  OLED_STM32_updateDisplay(); // Update the OLED display
   }
   /* USER CODE END Error_Handler_Debug */
 }
