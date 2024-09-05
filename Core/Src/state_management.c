@@ -15,7 +15,10 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include <stdlib.h>
+#include "Diode_led.h"
+#include "oled_stm32_ssd1306.h"
 extern ADC_HandleTypeDef hadc4;
+extern TIM_HandleTypeDef htim16;
 
 // Global variable definitions
 // Initialize global variables with default values
@@ -26,8 +29,6 @@ bool state_B2 = false;      /**< @brief State flag for component B2 */
 bool state_C1 = false;      /**< @brief State flag for component C1 */
 bool state_C2 = false;      /**< @brief State flag for component C2 */
 
-#define VREFINT_CAL_ADDRPTR ((uint16_t*)((uint32_t)0x0BFA07A5))  /**< @brief Address for Vrefint calibration */
-
 // Addresses for calibration values in system memory
 #define TS_CAL1_ADDR ((uint16_t*) 0x0BFA0710) // ADC value at 30°C
 #define TS_CAL2_ADDR ((uint16_t*) 0x0BFA0742) // ADC value at 110°C
@@ -37,7 +38,7 @@ bool state_C2 = false;      /**< @brief State flag for component C2 */
 #define TEMP2 (130.0f)  // T2 = 110°C
 
 // Global variables for the module
-static uint16_t ADC_raw[4]; /**< @brief Array to store raw ADC values (4 elements for different sensor readings) */
+static uint16_t ADC_raw[3]; /**< @brief Array to store raw ADC values (4 elements for different sensor readings) */
 
 // Function definitions
 
@@ -160,42 +161,25 @@ void CONTROLPILOT_STM32_startADCConversion(void) {
  */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     // Constants and static variables for filtering and calculations
-    static const float sensitivity = 0.066f;         // Sensitivity for the 30A current sensor model in V/A
     static const float alpha = 0.9f;                 // High alpha value for minimal filtering effect
     static float previousFilteredVoltage = 12.0f;   // Initial filtered voltage value (in volts)
-    static float previousFilteredCurrent = 0.0f;    // Initial filtered current value (in amperes)
     static float previousFilteredTemp = 30.0f;      // Initial filtered temperature value (in degrees Celsius)
+    static float Vddfloat = 3.0f;                   //vdd
     float ts_cal1 = (float)(*TS_CAL1_ADDR);
     float ts_cal2 = (float)(*TS_CAL2_ADDR);
     // Read the raw ADC values
     uint16_t rawADC_CP = ADC_raw[0];   // Raw ADC value for Control Pilot voltage
-    uint16_t rawVrefint = ADC_raw[1];  // Raw ADC value for Vrefint
-    uint16_t rawADC_Current = ADC_raw[2];  // Raw ADC value for current sensor
-    uint16_t rawTempSensor = ADC_raw[3];   // Raw ADC value for temperature sensor
-
-    // Calculate the supply voltage (Vdd) using the internal reference voltage
-    float Vrefint_cal_float = (float)(*VREFINT_CAL_ADDRPTR);  // Retrieve the factory calibration value (in millivolts)
-    float Vddfloat = 3000.0f * Vrefint_cal_float / (float)rawVrefint;  // Convert to actual Vdd value in millivolts
+    uint16_t rawTempSensor = ADC_raw[1];   // Raw ADC value for temperature sensor
 
     // Calculate the voltage on the Control Pilot (CP) line
-    float cpVoltageFloat_mv = Vddfloat * (float)rawADC_CP / 4095.0f;  // Convert ADC value to actual CP voltage in millivolts
-    float cpVoltageFloat_v = cpVoltageFloat_mv / 1000.0f;  // Convert millivolts to volts
-    float filteredVoltage = lowPassFilter(cpVoltageFloat_v, previousFilteredVoltage, alpha);  // Apply filtering
+    float cpVoltageFloat = Vddfloat * (float)rawADC_CP / 4095.0f;  // Convert ADC value to actual CP voltage
+    float filteredVoltage = lowPassFilter(cpVoltageFloat, previousFilteredVoltage, alpha);  // Apply filtering
     previousFilteredVoltage = filteredVoltage;  // Update the previous filtered voltage value
     HELPER_STM32_setCurrentCPVoltage(filteredVoltage);  // Update the CP voltage in the system
 
-    // Calculate the current from the current sensor
-    float currentVoltage_mv = (Vddfloat * (float)rawADC_Current *2/ 4095.0f)*1.035f;  // Convert ADC value to actual voltage in millivolts
-    float currentVoltage_v = currentVoltage_mv / 1000.0f;  // Convert millivolts to volts
-    float current = (currentVoltage_v - 2.5f) / sensitivity;  // Calculate the current based on sensor sensitivity
-    float filteredCurrent = lowPassFilter(current, previousFilteredCurrent, alpha);  // Apply filtering
-    previousFilteredCurrent = filteredCurrent;  // Update the previous filtered current value
-    HELPER_STM32_setCurrentAmpere(filteredCurrent);  // Update the current in the system
-
     // Calculate the temperature from the temperature sensor
-    float Temp_ADC_mv = Vddfloat * (float)rawTempSensor / 4095.0f;  // Convert ADC value to temperature in millivolts
-    float Temp_ADC_v = Temp_ADC_mv / 1000.0f;  // Convert millivolts to volts
-    float currentTemperature = ((Temp_ADC_v - ts_cal1) * (TEMP2 - TEMP1) / (ts_cal2 - ts_cal1)) + TEMP1; // Calculate the temperature using linear interpolation
+    float Temp_ADC= Vddfloat * (float)rawTempSensor / 4095.0f;  // Convert ADC value to temperature
+    float currentTemperature = ((Temp_ADC- ts_cal1) * (TEMP2 - TEMP1) / (ts_cal2 - ts_cal1)) + TEMP1; // Calculate the temperature using linear interpolation
     float filteredTemp = lowPassFilter(currentTemperature, previousFilteredTemp, alpha);  // Apply filtering
     previousFilteredTemp = filteredTemp;  // Update the previous filtered temperature value
     HELPER_STM32_setCurrentTemp(filteredTemp);  // Update the temperature in the system
@@ -254,4 +238,11 @@ void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc)
 {
 }
 
+void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin)
+{
+	// Open the contactor (critical process)
+	 HIGHVOLTAGE_STM32_contactorOff();
+	HAL_TIM_PWM_Stop(&htim16, TIM_CHANNEL_1); //low output
+	Error_Handler();
 
+}

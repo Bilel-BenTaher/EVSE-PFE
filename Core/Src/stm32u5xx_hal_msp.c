@@ -32,6 +32,10 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel1;
 
 extern DMA_HandleTypeDef handle_GPDMA1_Channel0;
 
+extern DMA_HandleTypeDef handle_GPDMA1_Channel4;
+
+extern DMA_HandleTypeDef handle_GPDMA1_Channel3;
+
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 
@@ -152,13 +156,12 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
     /**ADC4 GPIO Configuration
-    PA5     ------> ADC4_IN10
     PA6     ------> ADC4_IN11
     */
-    GPIO_InitStruct.Pin = STM32_ADC_CHANNE_CURRENT_Pin|CONTROLPILOT_STM32_ADC_CHANNE_VOLTAGE_Pin;
+    GPIO_InitStruct.Pin = CONTROLPILOT_STM32_ADC_CHANNE_VOLTAGE_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    HAL_GPIO_Init(CONTROLPILOT_STM32_ADC_CHANNE_VOLTAGE_GPIO_Port, &GPIO_InitStruct);
 
     /* ADC4 DMA Init */
     /* LPDMA1_REQUEST_ADC4 Init */
@@ -228,10 +231,9 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
     __HAL_RCC_ADC4_CLK_DISABLE();
 
     /**ADC4 GPIO Configuration
-    PA5     ------> ADC4_IN10
     PA6     ------> ADC4_IN11
     */
-    HAL_GPIO_DeInit(GPIOA, STM32_ADC_CHANNE_CURRENT_Pin|CONTROLPILOT_STM32_ADC_CHANNE_VOLTAGE_Pin);
+    HAL_GPIO_DeInit(CONTROLPILOT_STM32_ADC_CHANNE_VOLTAGE_GPIO_Port, CONTROLPILOT_STM32_ADC_CHANNE_VOLTAGE_Pin);
 
     /* ADC4 DMA DeInit */
     HAL_DMA_DeInit(hadc->DMA_Handle);
@@ -270,12 +272,19 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     __HAL_RCC_GPIOB_CLK_ENABLE();
     /**I2C1 GPIO Configuration
     PB3 (JTDO/TRACESWO)     ------> I2C1_SDA
-    PB6     ------> I2C1_SCL
+    PB8     ------> I2C1_SCL
     */
-    GPIO_InitStruct.Pin = Temp_STM32_I2C_DS16621_SDA_Pin|Temp_STM32_I2C_DS16621_SCL_Pin;
+    GPIO_InitStruct.Pin = Temp_STM32_I2C_DS16621_SDA_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
+    HAL_GPIO_Init(Temp_STM32_I2C_DS16621_SDA_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_8;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
@@ -362,11 +371,11 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
 
     /**I2C1 GPIO Configuration
     PB3 (JTDO/TRACESWO)     ------> I2C1_SDA
-    PB6     ------> I2C1_SCL
+    PB8     ------> I2C1_SCL
     */
     HAL_GPIO_DeInit(Temp_STM32_I2C_DS16621_SDA_GPIO_Port, Temp_STM32_I2C_DS16621_SDA_Pin);
 
-    HAL_GPIO_DeInit(Temp_STM32_I2C_DS16621_SCL_GPIO_Port, Temp_STM32_I2C_DS16621_SCL_Pin);
+    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_8);
 
     /* I2C1 DMA DeInit */
     HAL_DMA_DeInit(hi2c->hdmatx);
@@ -580,9 +589,9 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim)
 
   /* USER CODE END TIM16_MspPostInit 0 */
 
-    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOE_CLK_ENABLE();
     /**TIM16 GPIO Configuration
-    PB8     ------> TIM16_CH1
+    PE0     ------> TIM16_CH1
     */
     GPIO_InitStruct.Pin = CONTROLPILOT_STM32_GPIO_PWM_PIN_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -615,6 +624,150 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE BEGIN TIM16_MspDeInit 1 */
 
   /* USER CODE END TIM16_MspDeInit 1 */
+  }
+
+}
+
+/**
+* @brief UART MSP Initialization
+* This function configures the hardware resources used in this example
+* @param huart: UART handle pointer
+* @retval None
+*/
+void HAL_UART_MspInit(UART_HandleTypeDef* huart)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+  if(huart->Instance==USART1)
+  {
+  /* USER CODE BEGIN USART1_MspInit 0 */
+
+  /* USER CODE END USART1_MspInit 0 */
+
+  /** Initializes the peripherals clock
+  */
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+    PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_SYSCLK;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    /* Peripheral clock enable */
+    __HAL_RCC_USART1_CLK_ENABLE();
+
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    /**USART1 GPIO Configuration
+    PA10     ------> USART1_RX
+    PB6     ------> USART1_TX
+    */
+    GPIO_InitStruct.Pin = PZEM004T_RX_PIN_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
+    HAL_GPIO_Init(PZEM004T_RX_PIN_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = PZEM004T_TX_PIN_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
+    HAL_GPIO_Init(PZEM004T_TX_PIN_GPIO_Port, &GPIO_InitStruct);
+
+    /* USART1 DMA Init */
+    /* GPDMA1_REQUEST_USART1_RX Init */
+    handle_GPDMA1_Channel4.Instance = GPDMA1_Channel4;
+    handle_GPDMA1_Channel4.Init.Request = GPDMA1_REQUEST_USART1_RX;
+    handle_GPDMA1_Channel4.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
+    handle_GPDMA1_Channel4.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    handle_GPDMA1_Channel4.Init.SrcInc = DMA_SINC_FIXED;
+    handle_GPDMA1_Channel4.Init.DestInc = DMA_DINC_INCREMENTED;
+    handle_GPDMA1_Channel4.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_BYTE;
+    handle_GPDMA1_Channel4.Init.DestDataWidth = DMA_DEST_DATAWIDTH_BYTE;
+    handle_GPDMA1_Channel4.Init.Priority = DMA_LOW_PRIORITY_MID_WEIGHT;
+    handle_GPDMA1_Channel4.Init.SrcBurstLength = 1;
+    handle_GPDMA1_Channel4.Init.DestBurstLength = 1;
+    handle_GPDMA1_Channel4.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT0;
+    handle_GPDMA1_Channel4.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+    handle_GPDMA1_Channel4.Init.Mode = DMA_NORMAL;
+    if (HAL_DMA_Init(&handle_GPDMA1_Channel4) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(huart, hdmarx, handle_GPDMA1_Channel4);
+
+    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel4, DMA_CHANNEL_NPRIV) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    /* GPDMA1_REQUEST_USART1_TX Init */
+    handle_GPDMA1_Channel3.Instance = GPDMA1_Channel3;
+    handle_GPDMA1_Channel3.Init.Request = GPDMA1_REQUEST_USART1_TX;
+    handle_GPDMA1_Channel3.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
+    handle_GPDMA1_Channel3.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    handle_GPDMA1_Channel3.Init.SrcInc = DMA_SINC_INCREMENTED;
+    handle_GPDMA1_Channel3.Init.DestInc = DMA_DINC_FIXED;
+    handle_GPDMA1_Channel3.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_BYTE;
+    handle_GPDMA1_Channel3.Init.DestDataWidth = DMA_DEST_DATAWIDTH_BYTE;
+    handle_GPDMA1_Channel3.Init.Priority = DMA_LOW_PRIORITY_MID_WEIGHT;
+    handle_GPDMA1_Channel3.Init.SrcBurstLength = 1;
+    handle_GPDMA1_Channel3.Init.DestBurstLength = 1;
+    handle_GPDMA1_Channel3.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT0;
+    handle_GPDMA1_Channel3.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+    handle_GPDMA1_Channel3.Init.Mode = DMA_NORMAL;
+    if (HAL_DMA_Init(&handle_GPDMA1_Channel3) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(huart, hdmatx, handle_GPDMA1_Channel3);
+
+    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel3, DMA_CHANNEL_NPRIV) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+  /* USER CODE BEGIN USART1_MspInit 1 */
+
+  /* USER CODE END USART1_MspInit 1 */
+  }
+
+}
+
+/**
+* @brief UART MSP De-Initialization
+* This function freeze the hardware resources used in this example
+* @param huart: UART handle pointer
+* @retval None
+*/
+void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
+{
+  if(huart->Instance==USART1)
+  {
+  /* USER CODE BEGIN USART1_MspDeInit 0 */
+
+  /* USER CODE END USART1_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_USART1_CLK_DISABLE();
+
+    /**USART1 GPIO Configuration
+    PA10     ------> USART1_RX
+    PB6     ------> USART1_TX
+    */
+    HAL_GPIO_DeInit(PZEM004T_RX_PIN_GPIO_Port, PZEM004T_RX_PIN_Pin);
+
+    HAL_GPIO_DeInit(PZEM004T_TX_PIN_GPIO_Port, PZEM004T_TX_PIN_Pin);
+
+    /* USART1 DMA DeInit */
+    HAL_DMA_DeInit(huart->hdmarx);
+    HAL_DMA_DeInit(huart->hdmatx);
+  /* USER CODE BEGIN USART1_MspDeInit 1 */
+
+  /* USER CODE END USART1_MspDeInit 1 */
   }
 
 }

@@ -23,7 +23,7 @@ extern RTC_HandleTypeDef hrtc;
  */
 // Definition of global variables
 char Time[10] = {0};  // Definition and initialization of Time
-char Date[10] = {0};  // Definition and initialization of Date
+char Date[12] = {0};  // Definition and initialization of Date
 
 void get_time(void)
 {

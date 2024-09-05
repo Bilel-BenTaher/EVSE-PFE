@@ -16,12 +16,6 @@
 #include <stdint.h>  // For standard integer types
 
 // Variable Declarations
-/**
- * @brief Current amperage in amperes.
- *
- * This variable holds the current amperage .
- */
-extern float currentAmpere;
 
 /**
  * @brief Current CP voltage in volts.
@@ -38,23 +32,6 @@ extern float CurrentCPVoltage;
 extern float CurrentTemp;
 
 // Function Declarations
-/**
- * @brief Sets the current amperage.
- *
- * This function sets the value of the current amperage.
- *
- * @param newCurrentAmpere The new amperage value to be set.
- */
-void HELPER_STM32_setCurrentAmpere(float newCurrentAmpere);
-
-/**
- * @brief Retrieves the current amperage.
- *
- * This function gets the current amperage value.
- *
- * @return The current amperage value.
- */
-float HELPER_STM32_getCurrentAmpere(void);
 
 /**
  * @brief Sets the current CP voltage.

@@ -25,7 +25,7 @@ extern char Time[10];
  *
  * The date is retrieved from the RTC and stored in this variable for easy access and display.
  */
-extern char Date[10];
+extern char Date[12];
 
 // Function Prototypes
 /**

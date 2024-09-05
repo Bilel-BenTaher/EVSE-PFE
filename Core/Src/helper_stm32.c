@@ -14,33 +14,10 @@
 #include "helper_stm32.h"
 
 // Initializations
-float currentAmpere = 0.0f;    /**< @brief Current amperage initialized to 0. */
 float CurrentCPVoltage = 0.0f; /**< @brief Current CP voltage initialized to 0.0 volts. */
 float CurrentTemp = 0.0f;     /**< @brief Current temperature initialized to 0 degrees Celsius. */
 
 // Function Implementations
-
-/**
- * @brief Sets the current amperage.
- *
- * This function updates the global variable `currentAmpere` with a new value.
- *
- * @param newCurrentAmpere The new amperage value  .
- */
-void HELPER_STM32_setCurrentAmpere(float newCurrentAmpere) {
-    currentAmpere = newCurrentAmpere; // Update the current amperage
-}
-
-/**
- * @brief Retrieves the current amperage.
- *
- * This function returns the current value of `currentAmpere`.
- *
- * @return The current amperage value .
- */
-float HELPER_STM32_getCurrentAmpere(void) {
-    return currentAmpere; // Return the current amperage value
-}
 
 /**
  * @brief Sets the current CP voltage.

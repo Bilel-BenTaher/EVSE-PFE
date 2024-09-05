@@ -57,6 +57,10 @@ DMA_HandleTypeDef handle_GPDMA1_Channel0;
 
 TIM_HandleTypeDef htim16;
 
+UART_HandleTypeDef huart1;
+DMA_HandleTypeDef handle_GPDMA1_Channel4;
+DMA_HandleTypeDef handle_GPDMA1_Channel3;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -68,12 +72,12 @@ static void MX_GPIO_Init(void);
 static void MX_LPDMA1_Init(void);
 static void MX_GPDMA1_Init(void);
 static void MX_I2C1_Init(void);
-static void MX_MEMORYMAP_Init(void);
 static void MX_ADC4_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM16_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -114,12 +118,12 @@ int main(void)
   MX_LPDMA1_Init();
   MX_GPDMA1_Init();
   MX_I2C1_Init();
-  MX_MEMORYMAP_Init();
   MX_ADC4_Init();
   MX_SPI1_Init();
   MX_RTC_Init();
   MX_ADC1_Init();
   MX_TIM16_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   /* USER CODE END 2 */
 
@@ -245,8 +249,8 @@ static void MX_ADC1_Init(void)
   AnalogWDGConfig.WatchdogMode = ADC_ANALOGWATCHDOG_SINGLE_REG;
   AnalogWDGConfig.Channel = ADC_CHANNEL_3;
   AnalogWDGConfig.ITMode = ENABLE;
-  AnalogWDGConfig.HighThreshold = 1235;
-  AnalogWDGConfig.LowThreshold = 1111;
+  AnalogWDGConfig.HighThreshold = 4095;
+  AnalogWDGConfig.LowThreshold = 3413;
   AnalogWDGConfig.FilteringConfig = ADC_AWD_FILTERING_NONE;
   if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK)
   {
@@ -300,9 +304,9 @@ static void MX_ADC4_Init(void)
   hadc4.Init.LowPowerAutoPowerOff = ADC_LOW_POWER_NONE;
   hadc4.Init.LowPowerAutoWait = DISABLE;
   hadc4.Init.ContinuousConvMode = DISABLE;
-  hadc4.Init.NbrOfConversion = 4;
+  hadc4.Init.NbrOfConversion = 2;
   hadc4.Init.DiscontinuousConvMode = ENABLE;
-  hadc4.Init.NbrOfDiscConversion = 4;
+  hadc4.Init.NbrOfDiscConversion = 2;
   hadc4.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc4.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc4.Init.DMAContinuousRequests = ENABLE;
@@ -331,27 +335,8 @@ static void MX_ADC4_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_VREFINT;
-  sConfig.Rank = ADC4_REGULAR_RANK_2;
-  if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_10;
-  sConfig.Rank = ADC4_REGULAR_RANK_3;
-  if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Regular Channel
-  */
   sConfig.Channel = ADC4_CHANNEL_TEMPSENSOR;
-  sConfig.Rank = ADC4_REGULAR_RANK_4;
-  sConfig.SamplingTime = ADC4_SAMPLINGTIME_COMMON_2;
+  sConfig.Rank = ADC4_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel(&hadc4, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -384,6 +369,10 @@ static void MX_GPDMA1_Init(void)
     HAL_NVIC_EnableIRQ(GPDMA1_Channel1_IRQn);
     HAL_NVIC_SetPriority(GPDMA1_Channel2_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel2_IRQn);
+    HAL_NVIC_SetPriority(GPDMA1_Channel3_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel3_IRQn);
+    HAL_NVIC_SetPriority(GPDMA1_Channel4_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel4_IRQn);
 
   /* USER CODE BEGIN GPDMA1_Init 1 */
 
@@ -467,27 +456,6 @@ static void MX_LPDMA1_Init(void)
   /* USER CODE BEGIN LPDMA1_Init 2 */
 
   /* USER CODE END LPDMA1_Init 2 */
-
-}
-
-/**
-  * @brief MEMORYMAP Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_MEMORYMAP_Init(void)
-{
-
-  /* USER CODE BEGIN MEMORYMAP_Init 0 */
-
-  /* USER CODE END MEMORYMAP_Init 0 */
-
-  /* USER CODE BEGIN MEMORYMAP_Init 1 */
-
-  /* USER CODE END MEMORYMAP_Init 1 */
-  /* USER CODE BEGIN MEMORYMAP_Init 2 */
-
-  /* USER CODE END MEMORYMAP_Init 2 */
 
 }
 
@@ -687,6 +655,55 @@ static void MX_TIM16_Init(void)
 }
 
 /**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 9600;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_RXOVERRUNDISABLE_INIT;
+  huart1.AdvancedInit.OverrunDisable = UART_ADVFEATURE_OVERRUN_DISABLE;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_EnableFifoMode(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -706,6 +723,9 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOE_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(CONTROLRCD_STM32_TEST_IN_GPIO_Port, CONTROLRCD_STM32_TEST_IN_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, OLED_DC_PIN_Pin|OLED_RST_PIN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
@@ -716,6 +736,13 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(HIGHVOLTAGE_STM32_CTCTR_PIN_GPIO_Port, HIGHVOLTAGE_STM32_CTCTR_PIN_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : CONTROLRCD_STM32_TEST_IN_Pin */
+  GPIO_InitStruct.Pin = CONTROLRCD_STM32_TEST_IN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(CONTROLRCD_STM32_TEST_IN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : OLED_DC_PIN_Pin OLED_RST_PIN_Pin */
   GPIO_InitStruct.Pin = OLED_DC_PIN_Pin|OLED_RST_PIN_Pin;
@@ -744,12 +771,25 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(USERBUTTON_GPIO_MA_PIN_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : CONTROLRCD_STM32_X30_OUT_Pin CONTROLRCD_STM32_ERROR_OUT_Pin */
+  GPIO_InitStruct.Pin = CONTROLRCD_STM32_X30_OUT_Pin|CONTROLRCD_STM32_ERROR_OUT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pin : HIGHVOLTAGE_STM32_CTCTR_PIN_Pin */
   GPIO_InitStruct.Pin = HIGHVOLTAGE_STM32_CTCTR_PIN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(HIGHVOLTAGE_STM32_CTCTR_PIN_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI11_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI11_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI12_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI12_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -796,6 +836,10 @@ void Error_Handler(void)
   OLED_STM32_drawMonospaceString(4,42,"connecteur et éteindre");// Display "Veuillez debrancher le" message
   OLED_STM32_drawMonospaceString(34,54,"le chargeur");// Display "Veuillez debrancher le" message
   OLED_STM32_updateDisplay(); // Update the OLED display
+  // Turn off all LED
+  SET_DIODE_LED_RED_LOW();
+  SET_DIODE_LED_GREEN_LOW();
+  SET_DIODE_LED_BLUE_LOW();
   while (1)
   {
 	  SET_DIODE_LED_RED_HIGH();
@@ -803,8 +847,6 @@ void Error_Handler(void)
 
 	  SET_DIODE_LED_RED_LOW();
 	  HAL_Delay(500);
-
-	  OLED_STM32_updateDisplay(); // Update the OLED display
   }
   /* USER CODE END Error_Handler_Debug */
 }

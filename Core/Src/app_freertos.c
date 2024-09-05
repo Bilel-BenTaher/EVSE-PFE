@@ -18,10 +18,8 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include "FreeRTOS.h"
-#include "task.h"
-#include "main.h"
-#include "cmsis_os2.h"
+#include "app_freertos.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
@@ -33,6 +31,7 @@
 #include "RTC_stm32.h"
 #include "Diode_led.h"
 #include "DS1621_stm32.h"
+#include "PZEM004T.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,9 +54,11 @@
 extern ADC_HandleTypeDef hadc1;
 extern TIM_HandleTypeDef htim16;
 extern I2C_HandleTypeDef hi2c1;
+extern UART_HandleTypeDef huart1;
 bool notificationSentToOled = false; // Variable to track if the message is already displayed
 bool enChargeDisplayed = false; // Track if "En Charge" message has been displayed
 bool DisplayedState = false;
+float maxCurrent;
 /* USER CODE END Variables */
 /* Definitions for Task_HandleA1 */
 osThreadId_t Task_HandleA1Handle;
@@ -135,19 +136,6 @@ const osThreadAttr_t Task_RTC_attributes = {
 
 /* USER CODE END FunctionPrototypes */
 
-void CONTROLPILOT_STM32_HandleA1(void *argument);
-void CONTROLPILOT_STM32_HandleA2(void *argument);
-void CONTROLPILOT_STM32_HandleB1(void *argument);
-void CONTROLPILOT_STM32_HandleB2(void *argument);
-void CONTROLPILOT_STM32_HandleC1(void *argument);
-void CONTROLPILOT_STM32_HandleC2 (void *argument);
-void CONTROLPILOT_STM32_HandleE(void *argument);
-void CONTROLEVSE_STM32_ButtonTask(void *argument);
-void CONTROLDISPLAY_STM32_OledTask(void *argument);
-void CONTROLDISPLAY_STM32_RTCTask(void *argument);
-
-void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
-
 /**
   * @brief  FreeRTOS initialization
   * @param  None
@@ -189,7 +177,7 @@ void MX_FREERTOS_Init(void) {
   Task_HandleC1Handle = osThreadNew(CONTROLPILOT_STM32_HandleC1, NULL, &Task_HandleC1_attributes);
 
   /* creation of Task_HandleC2 */
-  Task_HandleC2Handle = osThreadNew(CONTROLPILOT_STM32_HandleC2 , NULL, &Task_HandleC2_attributes);
+  Task_HandleC2Handle = osThreadNew(CONTROLPILOT_STM32_HandleC2, NULL, &Task_HandleC2_attributes);
 
   /* creation of Task_HandleE */
   Task_HandleEHandle = osThreadNew(CONTROLPILOT_STM32_HandleE, NULL, &Task_HandleE_attributes);
@@ -229,11 +217,11 @@ void CONTROLPILOT_STM32_HandleA1(void *argument)
 		  if(state_A1)
 		  {
 		     // Check voltage to trigger state E if necessary
-			 if (HELPER_STM32_getCurrentCPVoltage() >= -1.0 && HELPER_STM32_getCurrentCPVoltage() <= 1.0)
+			 if (HELPER_STM32_getCurrentCPVoltage() >= 0 && HELPER_STM32_getCurrentCPVoltage() <= 0.22)
 			 {
 			     xTaskNotifyGive(Task_HandleEHandle); // Using a notification to report status E
 		     }
-		     else if (HELPER_STM32_getCurrentCPVoltage() >= 11.0 && HELPER_STM32_getCurrentCPVoltage() <= 13.0)
+		     else if (HELPER_STM32_getCurrentCPVoltage() >= 2.5 && HELPER_STM32_getCurrentCPVoltage() <= 3.0)
 		     {
 		    	 if(!notificationSentToOled) // Only display if not already displayed
 		    	 {
@@ -281,16 +269,16 @@ void CONTROLPILOT_STM32_HandleA2(void *argument)
 	  if(state_A2)
 	  {
           // Check voltage to trigger state E if necessary
-		  if (HELPER_STM32_getCurrentCPVoltage() >= -1.0 && HELPER_STM32_getCurrentCPVoltage() <= 1.0)
+		  if (HELPER_STM32_getCurrentCPVoltage() >= 0 && HELPER_STM32_getCurrentCPVoltage() <= 0.22)
           {
 	          xTaskNotifyGive(Task_HandleEHandle); // Notification to HandleE
           }
-          else if (HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
+          else if (HELPER_STM32_getCurrentCPVoltage() >= 1.81 && HELPER_STM32_getCurrentCPVoltage() <= 2.3)
           {
               // Send a notification to HandleB2 task
               xTaskNotifyGive(Task_HandleB2Handle);
           }
-          else if (HELPER_STM32_getCurrentCPVoltage() >= 11.0 && HELPER_STM32_getCurrentCPVoltage() <= 13.0)
+          else if (HELPER_STM32_getCurrentCPVoltage() >= 2.5 && HELPER_STM32_getCurrentCPVoltage() <= 3.0)
 	      {
         	  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);// The function adjusts the pulse width to 100%, resulting in a constant high output.
         	  notificationSentToOled = false;
@@ -319,15 +307,15 @@ void CONTROLPILOT_STM32_HandleB1(void *argument)
 	  if (state_B1)
 	  {
 	      // Check voltage to trigger state E if necessary
-		  if (HELPER_STM32_getCurrentCPVoltage() >= -1.0 && HELPER_STM32_getCurrentCPVoltage() <= 1.0)
+		  if (HELPER_STM32_getCurrentCPVoltage() >= 0 && HELPER_STM32_getCurrentCPVoltage() <= 0.22)
 	      {
 		      xTaskNotifyGive(Task_HandleEHandle); // Notification to HandleE
 	      }
-	      else if (HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
+	      else if (HELPER_STM32_getCurrentCPVoltage() >= 1.81 && HELPER_STM32_getCurrentCPVoltage() <= 2.3)
 	      {
 	          xTaskNotifyGive(Task_HandleB2Handle); // Notification to HandleB2
 	      }
-	      else if (HELPER_STM32_getCurrentCPVoltage() >= 11.0 && HELPER_STM32_getCurrentCPVoltage() <= 13.0)
+	      else if (HELPER_STM32_getCurrentCPVoltage() >= 2.5 && HELPER_STM32_getCurrentCPVoltage() <= 3.0)
 	      {
 	    	  notificationSentToOled = false;
 	         // Send a notification to HandleA1 task
@@ -354,19 +342,18 @@ void CONTROLPILOT_STM32_HandleB2(void *argument)
 	    CheckStateB2();
 	    if (state_B2)
 	    {
-	    	float maxCurrent = HELPER_STM32_getCurrentAmpere();
 	        float dutyCycle = maxCurrent / 60;
 	        SetPWMDutyCycle(&htim16, TIM_CHANNEL_1, dutyCycle);
 	       // Check voltage to trigger state E if necessary
-	       if (HELPER_STM32_getCurrentCPVoltage() >= -1.0 && HELPER_STM32_getCurrentCPVoltage() <= 1.0)
+	       if (HELPER_STM32_getCurrentCPVoltage() >=0 && HELPER_STM32_getCurrentCPVoltage() <= 0.22)
 	       {
 		      xTaskNotifyGive(Task_HandleEHandle); // Notification to HandleE
 	       }
-	       else if (HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
+	       else if (HELPER_STM32_getCurrentCPVoltage() >= 1.81 && HELPER_STM32_getCurrentCPVoltage() <= 2.3)
 	       {
 	          // Send a notification to OledHandle task
 	          xTaskNotifyGive(Task_OledHandle);
-	          vTaskDelay(pdMS_TO_TICKS(3000));
+	          vTaskDelay(pdMS_TO_TICKS(2000));
 	          if (dutyCycle < 0.8 || dutyCycle > 0.97)
 	          {
 	        	  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);// The function adjusts the pulse width to 100%, resulting in a constant high output.
@@ -378,7 +365,7 @@ void CONTROLPILOT_STM32_HandleB2(void *argument)
 	    	      xTaskNotifyGive(Task_HandleC2Handle); // Notification to HandleC2
 	          }
 	        }
-	        else if (HELPER_STM32_getCurrentCPVoltage() >= 11.0 && HELPER_STM32_getCurrentCPVoltage() <= 13.0)
+	        else if (HELPER_STM32_getCurrentCPVoltage() >= 2.5 && HELPER_STM32_getCurrentCPVoltage() <= 3.0)
             {
 	           // Send a notification to HandleA1 task
 	           xTaskNotifyGive(Task_HandleA2Handle); // Notification to HandleA2
@@ -405,13 +392,12 @@ void CONTROLPILOT_STM32_HandleC1(void *argument)
 	   if(state_C1)
 	   {
 	     // Check voltage to trigger state E if necessary
-		 if (HELPER_STM32_getCurrentCPVoltage() >= -1.0 && HELPER_STM32_getCurrentCPVoltage() <= 1.0)
+		 if (HELPER_STM32_getCurrentCPVoltage() >= 0 && HELPER_STM32_getCurrentCPVoltage() <= 0.22)
 	     {
 		     xTaskNotifyGive(Task_HandleEHandle); // Notification to HandleE
 	     }
-	     else if (HELPER_STM32_getCurrentCPVoltage() >= 5.0 && HELPER_STM32_getCurrentCPVoltage() <= 7.0)
+	     else if (HELPER_STM32_getCurrentCPVoltage() >= 1.13 && HELPER_STM32_getCurrentCPVoltage() <= 1.6)
 	     {
-	        float maxCurrent = HELPER_STM32_getCurrentAmpere();
 	        float dutyCycle = maxCurrent / 60;
 	        SetPWMDutyCycle(&htim16, TIM_CHANNEL_1, dutyCycle);
 	        if (dutyCycle > 0.8 || dutyCycle < 0.97)
@@ -424,7 +410,7 @@ void CONTROLPILOT_STM32_HandleC1(void *argument)
 	    	   xTaskNotifyGive(Task_HandleC1Handle);  // Notification to HandleC1
 	        }
 	      }
-	      else if (HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
+	      else if (HELPER_STM32_getCurrentCPVoltage() >= 1.81 && HELPER_STM32_getCurrentCPVoltage() <= 2.3)
 	      {
 	    	 vTaskDelay(pdMS_TO_TICKS(100));
 		     HIGHVOLTAGE_STM32_contactorOff();
@@ -432,7 +418,7 @@ void CONTROLPILOT_STM32_HandleC1(void *argument)
 	         // Send a notification to HandleB1 task
 	         xTaskNotifyGive(Task_HandleB1Handle); // Notification to HandleB1
 	      }
-	      else if (HELPER_STM32_getCurrentCPVoltage() >= 11.0 && HELPER_STM32_getCurrentCPVoltage() <= 13.0)
+	      else if (HELPER_STM32_getCurrentCPVoltage() >= 2.5 && HELPER_STM32_getCurrentCPVoltage() <= 3.0)
 	      {  vTaskDelay(pdMS_TO_TICKS(100));
     	    HIGHVOLTAGE_STM32_contactorOff();
 
@@ -464,26 +450,26 @@ void CONTROLPILOT_STM32_HandleC2 (void *argument)
 	    if(state_C2)
 	    {
 	       // Check voltage to trigger state E if necessary
-	       if (HELPER_STM32_getCurrentCPVoltage() >= -1.0 && HELPER_STM32_getCurrentCPVoltage() <= 1.0)
+	       if (HELPER_STM32_getCurrentCPVoltage() >= 0 && HELPER_STM32_getCurrentCPVoltage() <= 0.22)
 	       {
 	    	  xTaskNotifyGive(Task_HandleEHandle); // Notification to HandleE
 	       }
-	       else if(TempRelais>85||HELPER_STM32_getCurrentTemp()>85)
+	       else if(TempRelais>55||HELPER_STM32_getCurrentTemp()>85)
 	       {
 	    	   xTaskNotifyGive(Task_HandleEHandle); // Notification to HandleE
 	       }
-	       else if(HELPER_STM32_getCurrentCPVoltage() >= 2.0 && HELPER_STM32_getCurrentCPVoltage() <= 4.0)
+	       else if(HELPER_STM32_getCurrentCPVoltage() >= 0.45 && HELPER_STM32_getCurrentCPVoltage() <= 0.90)
 	       {
 	    	   vTaskDelay(pdMS_TO_TICKS(3000));
 	    	   HIGHVOLTAGE_STM32_contactorOff();
 	    	   SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);
 	    	   xTaskNotifyGive(Task_HandleC1Handle); // Notification to HandleC1
 	       }
-	       else if (HELPER_STM32_getCurrentCPVoltage() >= 5.0 && HELPER_STM32_getCurrentCPVoltage() <= 7.0)
+	       else if (HELPER_STM32_getCurrentCPVoltage() >= 1.13 && HELPER_STM32_getCurrentCPVoltage() <= 1.6)
 	       {
 	    	  HIGHVOLTAGE_STM32_contactorOn();
 
-	          float maxCurrent = HELPER_STM32_getCurrentAmpere();
+	           maxCurrent = PZEM_GetCurrent(&huart1);
 	          dutyCycle = maxCurrent/60;
 	          SetPWMDutyCycle(&htim16, TIM_CHANNEL_1, dutyCycle);
 	          // Send a notification to OledHandle task
@@ -492,7 +478,7 @@ void CONTROLPILOT_STM32_HandleC2 (void *argument)
 	          vTaskDelay(pdMS_TO_TICKS(5000));
 	          xTaskNotifyGive(Task_HandleC2Handle); // Notification to HandleC2
 	       }
-	       else if (HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
+	       else if (HELPER_STM32_getCurrentCPVoltage() >= 2.0 && HELPER_STM32_getCurrentCPVoltage() <= 2.5)
 	       {
 	    	  vTaskDelay(pdMS_TO_TICKS(100));
 	    	  HIGHVOLTAGE_STM32_contactorOff();
@@ -500,7 +486,7 @@ void CONTROLPILOT_STM32_HandleC2 (void *argument)
 	    	  xTaskNotifyGive(Task_OledHandle);
 	          xTaskNotifyGive(Task_HandleB2Handle); // Notification to HandleB2
 	       }
-	       else if (HELPER_STM32_getCurrentCPVoltage() >= 11.0 && HELPER_STM32_getCurrentCPVoltage() <= 13.0)
+	       else if (HELPER_STM32_getCurrentCPVoltage() >= 2.5 && HELPER_STM32_getCurrentCPVoltage() <= 3.0)
 	       {
 	    	  vTaskDelay(pdMS_TO_TICKS(100));
 	    	  HIGHVOLTAGE_STM32_contactorOff();
@@ -511,7 +497,8 @@ void CONTROLPILOT_STM32_HandleC2 (void *argument)
 	       else if (dutyCycle < 0.8 || dutyCycle > 0.97)
 	       {
 	    	  SetPWMDutyCycle(&htim16, TIM_CHANNEL_1,1);// The function adjusts the pulse width to 100%, resulting in a constant high output.
-	          vTaskDelay(pdMS_TO_TICKS(6000));
+	          vTaskDelay(pdMS_TO_TICKS(5000));
+	          maxCurrent = PZEM_GetCurrent(&huart1);
 	          HIGHVOLTAGE_STM32_contactorOff();
 	          xTaskNotifyGive(Task_HandleC1Handle); // Notification to HandleC1
 	       }
@@ -576,7 +563,9 @@ void CONTROLEVSE_STM32_ButtonTask(void *argument)
         if (currentButtonState == GPIO_PIN_SET) // If the button is now pressed
         {
           OLED_STM32_initDisplay();
+          HAL_GPIO_WritePin(CONTROLRCD_STM32_TEST_IN_GPIO_Port, CONTROLRCD_STM32_TEST_IN_Pin, GPIO_PIN_RESET);
           vTaskDelay(pdMS_TO_TICKS(50));
+          HAL_GPIO_WritePin(CONTROLRCD_STM32_TEST_IN_GPIO_Port, CONTROLRCD_STM32_TEST_IN_Pin, GPIO_PIN_SET);
           OLED_STM32_updateMain_WelcomeView();
           SET_DIODE_LED_GREEN_HIGH();
           DisplayedState=true;
@@ -587,6 +576,7 @@ void CONTROLEVSE_STM32_ButtonTask(void *argument)
          // Handle error if the start operation fails
           Error_Handler();
          }
+         maxCurrent = PZEM_GetCurrent(&huart1);
           xTaskNotifyGive(Task_HandleA1Handle); // Start all state machine tasks
         }
         else if (currentButtonState == GPIO_PIN_RESET) // If the button is now released
@@ -629,7 +619,7 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
     if (ulTaskNotifyTake(pdTRUE, portMAX_DELAY))
     {
       // Check for state and voltage conditions
-      if (state_A1 && HELPER_STM32_getCurrentCPVoltage() >= 11.0 && HELPER_STM32_getCurrentCPVoltage() <= 13.0)
+      if (state_A1 && HELPER_STM32_getCurrentCPVoltage() >= 2.5 && HELPER_STM32_getCurrentCPVoltage() <= 3.0)
       {
         // Display "Please connect your charger" if voltage is within specified range
         OLED_STM32_clearArea(38, 32, "Bienvenue"); // Clear the area before drawing new text
@@ -639,7 +629,7 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
         SET_DIODE_LED_GREEN_HIGH();
         SET_DIODE_LED_BLUE_LOW();
       }
-      else if (state_B2 && HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
+      else if (state_B2 && HELPER_STM32_getCurrentCPVoltage() >= 1.81 && HELPER_STM32_getCurrentCPVoltage() <= 2.3)
       {
         // Clear the "Please connect your charger" message if voltage falls within another range
         OLED_STM32_clearArea(12, 32, "Veuillez connecter");
@@ -650,7 +640,7 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
         SET_DIODE_LED_GREEN_LOW();
         SET_DIODE_LED_RED_HIGH();
       }
-      else if (state_C2 && HELPER_STM32_getCurrentCPVoltage() >= 5.0 && HELPER_STM32_getCurrentCPVoltage() <= 7.0)
+      else if (state_C2 && HELPER_STM32_getCurrentCPVoltage() >= 1.13 && HELPER_STM32_getCurrentCPVoltage() <= 1.6)
       {
         // Static variables to store previous sensor readings
         static float previousTemp = -128;  // Initialize with an impossible value for temperature
@@ -660,9 +650,8 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
 
         // Get current sensor readings
         float currentTemp = HELPER_STM32_getCurrentTemp();
-        float currentAmp = HELPER_STM32_getCurrentAmpere();
-        float currentVolt =220;
-        float currentPower = currentAmp*220;
+        float currentVolt =PZEM_GetVoltage(&huart1);
+        float currentPower = PZEM_GetPower(&huart1);
 
         // Update temperature display only if it has changed
         if (currentTemp != previousTemp)
@@ -689,12 +678,12 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
         }
 
         // Update current display only if it has changed
-        if (currentAmp != previousAmp)
+        if (maxCurrent!= previousAmp)
         {
-          previousAmp = currentAmp;
+          previousAmp = maxCurrent;
           // Convert current to string format
           char ampStr[4];
-          int ampInt = (int)currentAmp; // Convert float to integer by taking the integer part
+          int ampInt = (int)maxCurrent; // Convert float to integer by taking the integer part
           snprintf(ampStr, sizeof(ampStr), "%dA", ampInt); // Format with 'A' for amperes
 
           // Draw current on the OLED display, bottom left
@@ -744,7 +733,7 @@ void CONTROLDISPLAY_STM32_OledTask(void *argument)
           enChargeDisplayed = true; // Set flag to avoid re-drawing
         }
       }
-      else if (state_C2 && HELPER_STM32_getCurrentCPVoltage() >= 8.0 && HELPER_STM32_getCurrentCPVoltage() <= 10.0)
+      else if (state_C2 && HELPER_STM32_getCurrentCPVoltage() >= 1.81 && HELPER_STM32_getCurrentCPVoltage() <= 2.3)
       {
         // Reset "Charging" message and update display with date and time
         enChargeDisplayed = false;

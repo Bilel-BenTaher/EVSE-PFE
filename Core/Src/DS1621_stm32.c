@@ -35,7 +35,7 @@ float DS1621_getTemperature(I2C_HandleTypeDef *hi2c) {
 
     // Start the temperature conversion process using DMA for I2C_TX
     if (HAL_I2C_Master_Transmit_DMA(hi2c, DS1621_I2C_ADDRESS, &cmd_start, 1) != HAL_OK) {
-        Error_Handler();  // Handle transmission error
+    	return 0; // Handle transmission error
     }
 
     // Wait for the transmission to complete
@@ -45,7 +45,7 @@ float DS1621_getTemperature(I2C_HandleTypeDef *hi2c) {
 
     // Request the temperature data from the DS1621 using DMA for I2C_TX
     if (HAL_I2C_Master_Transmit_DMA(hi2c, DS1621_I2C_ADDRESS, &cmd_read, 1) != HAL_OK) {
-        Error_Handler();  // Handle transmission error
+    	return 0; // Handle transmission error
     }
 
     // Wait for the transmission to complete
@@ -53,7 +53,7 @@ float DS1621_getTemperature(I2C_HandleTypeDef *hi2c) {
 
     // Receive the temperature data (2 bytes) using DMA for I2C_RX
     if (HAL_I2C_Master_Receive_DMA(hi2c, DS1621_I2C_ADDRESS, buf, 2) != HAL_OK) {
-        Error_Handler();  // Handle reception error
+    	return 0; // Handle transmission error
     }
 
     // Wait for the reception to complete
