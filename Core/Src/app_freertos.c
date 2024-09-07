@@ -438,7 +438,7 @@ void CONTROLPILOT_STM32_HandleC1(void *argument)
 * @retval None
 */
 /* USER CODE END Header_CONTROLPILOT_STM32_HandleC2 */
-void CONTROLPILOT_STM32_HandleC2 (void *argument)
+void CONTROLPILOT_STM32_HandleC2(void *argument)
 {
   /* USER CODE BEGIN Task_HandleC2 */
 	float dutyCycle;

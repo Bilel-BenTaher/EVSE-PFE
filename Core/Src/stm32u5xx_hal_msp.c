@@ -274,17 +274,10 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     PB3 (JTDO/TRACESWO)     ------> I2C1_SDA
     PB8     ------> I2C1_SCL
     */
-    GPIO_InitStruct.Pin = Temp_STM32_I2C_DS16621_SDA_Pin;
+    GPIO_InitStruct.Pin = Temp_STM32_I2C_DS16621_SDA_Pin|Temp_STM32_I2C_DS16621_SCL_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
-    HAL_GPIO_Init(Temp_STM32_I2C_DS16621_SDA_GPIO_Port, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_8;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
@@ -375,7 +368,7 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
     */
     HAL_GPIO_DeInit(Temp_STM32_I2C_DS16621_SDA_GPIO_Port, Temp_STM32_I2C_DS16621_SDA_Pin);
 
-    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_8);
+    HAL_GPIO_DeInit(Temp_STM32_I2C_DS16621_SCL_GPIO_Port, Temp_STM32_I2C_DS16621_SCL_Pin);
 
     /* I2C1 DMA DeInit */
     HAL_DMA_DeInit(hi2c->hdmatx);
