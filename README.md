@@ -1,4 +1,4 @@
-EVSE (Electric Vehicle Supply Equipment) Development Project
+
 This repository contains all the files related to my final year project for the development of Electric Vehicle Supply Equipment (EVSE). The project includes hardware schematics, design files, and firmware for an STM32U575VGT6 microcontroller, along with peripheral device drivers and task management through FreeRTOS.
 
 Project Structure
