@@ -11,16 +11,19 @@ Project Structure
 Sensors:
 
 ds1621.h & ds1621.c: Driver for the DS1621 temperature sensor.
+
 pzem004t.h & pzem004t.c: Driver for the PZEM004T sensor, used to measure voltage, current, and power.
 
 Display:
 
 oled.h & oled.c: Driver for the OLED display to show real-time data.
+
 fonts.h: Defines the fonts used for text display on the OLED screen.
 
 RTC:
 
 rtc.h & rtc.c: Code to manage the real-time clock for date and time display.
+
 LEDs & Diodes:
 
 led.h: Macros and functions for controlling status LEDs.
