@@ -1,37 +1,32 @@
-This repository contains all the files related to my final year project for the development of Electric Vehicle Supply Equipment (EVSE). The project includes hardware schematics, design files, and firmware for an STM32U575VGT6 microcontroller, along with peripheral device drivers and task management through FreeRTOS.
+Electric Vehicle Supply Equipment (EVSE) Final Year Project
+This repository contains all files related to my final year project, which focuses on the development of Electric Vehicle Supply Equipment (EVSE). The project encompasses hardware schematics, design files, and firmware for the STM32U575VGT6 microcontroller, as well as peripheral device drivers and task management using FreeRTOS.
 
 Project Structure
+The repository is organized as follows:
 
-/Altium/: Contains the Altium project files for the EVSE circuit design. This folder includes the EVSE schematic.
+bash
+Copy code
+/Design/                # Contains design-related documents, including flowcharts, general functional block diagrams, and detailed diagrams of internal EVSE components.
 
-/Design/: Contains files related to the design of the EVSE system, including flowcharts, general functional block diagrams, and detailed diagrams of the internal EVSE components.
-
-/core/: The firmware code written for the STM32U575VGT6. This folder contains all source files, including header and C files for various sensors and peripherals.
-
+/core/                  # Contains the firmware code for the STM32U575VGT6, including source files for various sensors and peripherals.
+Core Firmware Components
 Sensors:
 
 ds1621.h & ds1621.c: Driver for the DS1621 temperature sensor.
-
-pzem004t.h & pzem004t.c: Driver for the PZEM004T sensor, used to measure voltage, current, and power.
-
+pzem004t.h & pzem004t.c: Driver for the PZEM004T sensor, used for measuring voltage, current, and power.
 Display:
 
 oled.h & oled.c: Driver for the OLED display to show real-time data.
+fonts.h: Contains definitions for fonts used on the OLED screen.
+Real-Time Clock (RTC):
 
-fonts.h: Defines the fonts used for text display on the OLED screen.
-
-RTC:
-
-rtc.h & rtc.c: Code to manage the real-time clock for date and time display.
-
+rtc.h & rtc.c: Code for managing the real-time clock for date and time display.
 LEDs & Diodes:
 
-led.h: Macros and functions for controlling status LEDs.
-
+led.h: Contains macros and functions for controlling status LEDs.
 FreeRTOS:
 
-The FreeRTOS configuration and task definitions to manage system processes, including sensor communication, error handling, and display updates.
-
+Configuration and task definitions for managing system processes, including sensor communication, error handling, and display updates.
 Helper Functions:
 
-help.h: Contains utility functions that are reused across different parts of the codebase.
+help.h: Utility functions that are reused across different parts of the codebase.
