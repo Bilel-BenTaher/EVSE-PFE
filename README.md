@@ -1,11 +1,13 @@
 # **Electric Vehicle Supply Equipment (EVSE) Final Year Project**
 
-This repository contains all files related to my final year project, which focuses on the development of Electric Vehicle Supply Equipment (EVSE). The project encompasses design files, and firmware for the STM32U575VGT6 microcontroller, as well as peripheral device drivers and task management using FreeRTOS.
+This repository contains all files related to my final year project, which focuses on the development of Electric Vehicle Supply Equipment (EVSE). The project includes design files, circuit diagram, and firmware for the STM32U575VGT6 microcontroller, leveraging the FreeRTOS operating system for task management.
 
 ## **Project Structure**
 The repository is organized as follows:
 
 /Design/                # Contains design-related documents, including flowcharts, general functional block diagrams, and detailed diagrams of internal EVSE components.
+
+/Circuit_Diagram/       # Contains detailed circuit diagram for the EVSE system.
 
 /core/                  # Contains the firmware code for the STM32U575VGT6, including source files for various sensors and peripherals.
 
